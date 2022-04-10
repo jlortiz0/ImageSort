@@ -8,7 +8,7 @@ Upon opening the application, it displays a list of subfolders of the folder it'
 
 In the Sort folder, there is a folder bar at the top of the UI listing every folder except for Sort and Trash. Pressing Q will scroll this bar forward. Pressing a number key will move the image to the corresponding folder on the top bar.
 
-In the DeDuplicator, you view images in sets of two. Press the Q key to switch between the two images. Pressing Z, X, C, V, or H will perform the operation only on the currently active image.
+In the deduplicator, you view images in sets of two. Press the Q key to switch between the two images. Pressing Z, X, C, V, or H will perform the operation only on the currently active image.
 
 ## Controls
 
@@ -16,8 +16,8 @@ In the DeDuplicator, you view images in sets of two. Press the Q key to switch b
  - Up/Down arrows - Change selection
  - Enter - Pick folder/submenu
  - D - Delete an empty folder
- - R - Open the DeDuplicator on the highlighed folder
- - U - Open the DeDuplicator on all folders
+ - R - Open the deduplicator on the highlighed folder
+ - U - Open the deduplicator on all folders except Trash
  - ESC - Close the program
 
 ### Image Browser
@@ -49,7 +49,7 @@ Similar to the image browser, but...
  - Enter - Submit folder name
  - ESC - Cancel
 
-### DeDuplicator
+### Deduplicator
 Similar to image browser, but...
  - Q - Switch images
 
@@ -64,7 +64,7 @@ Similar to image browser, but...
  - Sample Size: Controls the size of the image hashes used by the DeDuplicator. Changing this will require all images to be rehashed.
 
 ## Known Bugs
- - The DeDuplicator only considers the first frame of animated images.
+ - The deduplicator only considers the first frame of animated images.
  - Transparent animated images are given a colored background.
- - After moving to a new pair in the DeDuplicator, the background will change to the default color even if this should not happen.
+ - After moving to a new pair in the deduplicator, the background will change to the default color even if this should not happen.
  - When deleting an image or fading to another screen in the Sort folder, the folder bar is not visible.
