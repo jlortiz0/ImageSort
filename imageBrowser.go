@@ -18,6 +18,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -136,7 +137,7 @@ func (menu *ImageMenu) keyHandler(key sdl.Keycode) int {
 		stat, _ := os.Stat(menu.fldr + string(os.PathSeparator) + menu.itemList[menu.Selected])
 		sz := float64(stat.Size()) / 1024
 		if sz > 1024 {
-			displayMessage(fmt.Sprintf("File: %s\nScale Height: %d\nScale Width: %d\nStorage: %.1f MiB", menu.itemList[menu.Selected], menu.pos.H, menu.pos.W, sz / 1024))
+			displayMessage(fmt.Sprintf("File: %s\nScale Height: %d\nScale Width: %d\nStorage: %.1f MiB", menu.itemList[menu.Selected], menu.pos.H, menu.pos.W, sz/1024))
 		} else {
 			displayMessage(fmt.Sprintf("File: %s\nScale Height: %d\nScale Width: %d\nStorage: %.1f KiB", menu.itemList[menu.Selected], menu.pos.H, menu.pos.W, sz))
 		}
@@ -267,7 +268,7 @@ func (menu *ImageMenu) keyHandler(key sdl.Keycode) int {
 		cmd.SysProcAttr = &syscall.SysProcAttr{CmdLine: cwd}
 		cmd.Run()
 	} else if key == sdl.K_p {
-		panic(nil)
+		panic(errors.New("no windows available for re-popping"))
 	}
 	return LOOP_CONT
 }

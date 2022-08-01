@@ -19,18 +19,19 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
+	"errors"
 	"os"
+	"runtime/debug"
 	"strings"
 	"time"
 	"unsafe"
 
+	"github.com/TheTitanrain/w32"
 	"github.com/adrg/sysfont"
 	"github.com/veandco/go-sdl2/img"
 	"github.com/veandco/go-sdl2/sdl"
 	"github.com/veandco/go-sdl2/ttf"
 	"golang.org/x/sys/windows"
-	"github.com/TheTitanrain/w32"
 )
 
 var COLOR_BLACK = sdl.Color{A: 255}
@@ -121,6 +122,88 @@ func main() {
 	if err == nil {
 		loading, _ = display.CreateTextureFromSurface(txtSurf)
 	}
+	defer func() {
+		err := recover().(error)
+		if err == nil {
+			return
+		}
+		if _, err2 := os.Stat("Px437_IBM_VGA_9x16.ttf"); err2 == nil {
+			font.Close()
+			font, _ = ttf.OpenFont("Px437_IBM_VGA_9x16.ttf", 16)
+			fHeight = 20
+		}
+		display.SetDrawColor(0, 0, 170, 0)
+		display.Clear()
+		wW, wH := window.GetSize()
+		txtSurf, _ := font.RenderUTF8Shaded(" ImageSort ", sdl.Color{B: 170}, sdl.Color{R: 171, G: 169, B: 168})
+		pos := sdl.Rect{H: txtSurf.H, W: txtSurf.W, X: wW/2 - txtSurf.W/2, Y: wH / 4}
+		txtText, _ := display.CreateTextureFromSurface(txtSurf)
+		txtSurf.Free()
+		display.Copy(txtText, nil, &pos)
+		txtSurf, _ = font.RenderUTF8Shaded("An error has occurred. Press any key to quit.", sdl.Color{R: 171, G: 169, B: 168}, sdl.Color{B: 170})
+		pos = sdl.Rect{H: txtSurf.H, W: txtSurf.W, X: wW / 8, Y: wH/4 + 2*fHeight}
+		txtText, _ = display.CreateTextureFromSurface(txtSurf)
+		txtSurf.Free()
+		display.Copy(txtText, nil, &pos)
+		txtSurf, _ = font.RenderUTF8Shaded("This information will be saved in crash.log. Attach this file to any bug report.", sdl.Color{R: 171, G: 169, B: 168}, sdl.Color{B: 170})
+		pos = sdl.Rect{H: txtSurf.H, W: txtSurf.W, X: wW / 8, Y: wH/4 + 2*fHeight}
+		txtText, _ = display.CreateTextureFromSurface(txtSurf)
+		txtSurf.Free()
+		display.Copy(txtText, nil, &pos)
+		txtSurf, _ = font.RenderUTF8Shaded(err.Error(), sdl.Color{R: 171, G: 169, B: 168}, sdl.Color{B: 170})
+		pos = sdl.Rect{H: txtSurf.H, W: txtSurf.W, X: wW / 8, Y: wH/4 + 5*fHeight}
+		txtText, _ = display.CreateTextureFromSurface(txtSurf)
+		txtSurf.Free()
+		display.Copy(txtText, nil, &pos)
+		stack := string(debug.Stack())
+		for i := 0; i < 5; i++ {
+			stack = stack[strings.IndexByte(stack, '\n')+1:]
+		}
+		f, err2 := os.OpenFile("crash.log", os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
+		if err2 == nil {
+			f.Write([]byte(err.Error()))
+			f.Write([]byte("\n"))
+			f.Write([]byte(stack))
+		}
+		i := int32(6)
+		x := strings.IndexByte(stack, '\n')
+		for x != -1 {
+			if stack[0] == '\t' {
+				stack = "    " + stack[1:]
+				x += 3
+			}
+			txtSurf, _ = font.RenderUTF8Solid(stack[:x], sdl.Color{R: 171, G: 169, B: 168})
+			pos = sdl.Rect{H: txtSurf.H, W: txtSurf.W, X: wW / 8, Y: wH/4 + i*fHeight}
+			txtText, _ = display.CreateTextureFromSurface(txtSurf)
+			txtSurf.Free()
+			display.Copy(txtText, nil, &pos)
+			stack = stack[x+1:]
+			i++
+			x = strings.IndexByte(stack, '\n')
+		}
+		if err2 != nil {
+			txtSurf, _ = font.RenderUTF8Shaded("Bugger me! Encountered an error generating this screen:", sdl.Color{R: 171, G: 169, B: 168}, sdl.Color{B: 170})
+			pos = sdl.Rect{H: txtSurf.H, W: txtSurf.W, X: wW / 8, Y: wH/4 + i*fHeight}
+			txtText, _ = display.CreateTextureFromSurface(txtSurf)
+			txtSurf.Free()
+			display.Copy(txtText, nil, &pos)
+			txtSurf, _ = font.RenderUTF8Shaded(err2.Error(), sdl.Color{R: 171, G: 169, B: 168}, sdl.Color{B: 170})
+			pos = sdl.Rect{H: txtSurf.H, W: txtSurf.W, X: wW / 8, Y: wH/4 + (i+1)*fHeight}
+			txtText, _ = display.CreateTextureFromSurface(txtSurf)
+			txtSurf.Free()
+			display.Copy(txtText, nil, &pos)
+		}
+		display.Present()
+		for {
+			event := sdl.WaitEvent()
+			if _, ok := event.(*sdl.KeyboardEvent); ok {
+				break
+			}
+			if _, ok := event.(*sdl.QuitEvent); ok {
+				break
+			}
+		}
+	}()
 	prevDelay = time.Now()
 	beginFldrMenu()
 	saveScreen()
@@ -129,8 +212,7 @@ func main() {
 	fadeScreen()
 	err = saveHashes()
 	if err != nil {
-		fmt.Println(err.Error())
-		time.Sleep(10 * time.Second)
+		panic(err)
 	}
 }
 
@@ -343,6 +425,8 @@ func (men *ChoiceMenu) keyHandler(key sdl.Keycode) int {
 		if men.Selected == len(men.itemList) {
 			men.Selected = 0
 		}
+	case sdl.K_p:
+		panic(errors.New("unable to render texture normals"))
 	}
 	_, wH := window.GetSize()
 	canFit := int(wH / fHeight)
