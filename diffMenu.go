@@ -28,14 +28,13 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"unsafe"
 
 	"github.com/devedge/imagehash"
 	"github.com/veandco/go-sdl2/sdl"
 )
 
 // #include "libpopcnt.h"
-import "C"
+// import "C"
 
 var hashes map[string]hashEntry
 
@@ -501,28 +500,28 @@ func getHash(path string) []byte {
 	return hsh
 }
 
-// var bitsTable [16]uint16 = [16]uint16{
-// 	0, 1, 1, 2, 1, 2, 2, 3,
-// 	1, 2, 2, 3, 2, 3, 3, 4,
-// }
+var bitsTable [16]uint16 = [16]uint16{
+	0, 1, 1, 2, 1, 2, 2, 3,
+	1, 2, 2, 3, 2, 3, 3, 4,
+}
 
 func compareBits(x, y []byte) uint16 {
 	if len(x) != len(y) {
 		return 0xFFFF
 	}
-	// var c uint16
-	// for i := 0; i < len(x); i++ {
-	// temp := x[i] ^ y[i]
-	// c += bitsTable[temp&0xf]
-	// c += bitsTable[temp>>4]
-	// if c > config.HashDiff {
-	// break
-	// }
-	// }
-	// return c
-	temp := make([]byte, len(x))
+	var c uint16
 	for i := 0; i < len(x); i++ {
-		temp[i] = x[i] ^ y[i]
+		temp := x[i] ^ y[i]
+		c += bitsTable[temp&0xf]
+		c += bitsTable[temp>>4]
+		if c > config.HashDiff {
+			break
+		}
 	}
-	return uint16(C.popcnt(unsafe.Pointer(&temp[0]), C.ulonglong(len(x))))
+	return c
+	// temp := make([]byte, len(x))
+	// for i := 0; i < len(x); i++ {
+	// 	temp[i] = x[i] ^ y[i]
+	// }
+	// return uint16(C.popcnt(unsafe.Pointer(&temp[0]), C.ulonglong(len(x))))
 }
