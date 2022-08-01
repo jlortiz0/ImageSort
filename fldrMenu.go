@@ -159,9 +159,10 @@ func (menu *FolderMenu) keyHandler(key sdl.Keycode) int {
 			imgMenu := makeDiffMenu(menu.itemList[menu.Selected])
 			if imgMenu != nil {
 				saveScreen()
-				if imgMenu.initDiff() {
+				result := imgMenu.initDiff()
+				if result == LOOP_EXIT {
 					displayMessage("No duplicates!")
-				} else {
+				} else if result == LOOP_CONT {
 					imgMenu.imageLoader()
 					if stdEventLoop(imgMenu) == LOOP_QUIT {
 						return LOOP_QUIT
@@ -177,9 +178,10 @@ func (menu *FolderMenu) keyHandler(key sdl.Keycode) int {
 		imgMenu := makeDiffAllMenu()
 		if imgMenu != nil {
 			saveScreen()
-			if imgMenu.initDiff() {
+			result := imgMenu.initDiff()
+			if result == LOOP_EXIT {
 				displayMessage("No duplicates!")
-			} else {
+			} else if result == LOOP_CONT {
 				imgMenu.imageLoader()
 				if stdEventLoop(imgMenu) == LOOP_QUIT {
 					return LOOP_QUIT

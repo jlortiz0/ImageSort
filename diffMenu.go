@@ -106,13 +106,14 @@ func makeDiffMenu(fldr string) *DiffMenu {
 	return menu
 }
 
-func (menu *DiffMenu) initDiff() bool {
+func (menu *DiffMenu) initDiff() int {
 	var ops float32
 	texture, rect := drawMessage("Finding duplicates...\nPreparing...")
 	display.Clear()
 	display.Copy(texture, nil, rect)
 	fadeScreen()
 	lastUpdate := time.Now()
+	lastPump := time.Now()
 	diffLs := make([][]byte, len(menu.itemList))
 	for k, v := range menu.itemList {
 		if menu.fldr == "." {
@@ -121,14 +122,24 @@ func (menu *DiffMenu) initDiff() bool {
 			diffLs[k] = getHash(menu.fldr + string(os.PathSeparator) + v)
 		}
 		ops++
-		if time.Since(lastUpdate) > time.Second/2 {
+		if time.Since(lastUpdate) > time.Second/4 {
 			texture.Destroy()
 			texture, rect = drawMessage(fmt.Sprintf("Finding duplicates...\nHashing %.1f%%", ops/float32(len(menu.itemList))*100))
 			display.Clear()
 			display.Copy(texture, nil, rect)
 			display.Present()
-			sdl.PumpEvents()
 			lastUpdate = time.Now()
+		}
+		if time.Since(lastPump) > time.Second/16 {
+			event := sdl.PollEvent()
+			for event != nil {
+				keyEvent, ok := event.(*sdl.KeyboardEvent)
+				if ok && keyEvent.Keysym.Sym == sdl.K_ESCAPE {
+					return LOOP_QUIT
+				}
+				event = sdl.PollEvent()
+			}
+			lastPump = time.Now()
 		}
 	}
 	for i, v := range diffLs {
@@ -143,7 +154,10 @@ func (menu *DiffMenu) initDiff() bool {
 	menu.itemList = make([]string, len(menu.diffList))
 	texture.Destroy()
 	saveScreen()
-	return len(menu.diffList) == 0
+	if len(menu.diffList) == 0 {
+		return LOOP_EXIT
+	}
+	return LOOP_CONT
 }
 
 func (menu *DiffMenu) keyHandler(key sdl.Keycode) int {
@@ -278,6 +292,9 @@ func (menu *DiffMenu) imageLoader() int {
 			menu.Selected--
 		} else {
 			copy(menu.diffList[menu.Selected:], menu.diffList[menu.Selected+1:])
+			if menu.prevMoveDir && menu.Selected > 0 {
+				menu.Selected--
+			}
 		}
 		menu.diffList = menu.diffList[:len(menu.diffList)-1]
 		menu.itemList = menu.itemList[:len(menu.itemList)-1]
