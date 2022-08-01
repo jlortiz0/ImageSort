@@ -292,7 +292,7 @@ func (menu *DiffMenu) imageLoader() int {
 			menu.Selected--
 		} else {
 			copy(menu.diffList[menu.Selected:], menu.diffList[menu.Selected+1:])
-			if menu.prevMoveDir && menu.Selected > 0 {
+			if !menu.prevMoveDir && menu.Selected > 0 {
 				menu.Selected--
 			}
 		}
