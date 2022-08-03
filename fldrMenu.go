@@ -298,7 +298,7 @@ func drawMessage(msg string) (*sdl.Texture, *sdl.Rect) {
 	}
 	texture, _ := display.CreateTextureFromSurface(surf)
 	wW, wH := window.GetSize()
-	rect := &sdl.Rect{X: (wW - surf.W - 60) / 2, Y: (wH - surf.H) / 2, H: surf.H, W: surf.W}
+	rect := &sdl.Rect{X: (wW - surf.W) / 2, Y: (wH - surf.H) / 2, H: surf.H, W: surf.W}
 	surf.Free()
 	return texture, rect
 }
