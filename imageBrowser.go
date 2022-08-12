@@ -264,7 +264,7 @@ func (menu *ImageMenu) keyHandler(key sdl.Keycode) int {
 	} else if key == sdl.K_h && os.PathSeparator == '\\' {
 		cwd, _ := os.Getwd()
 		cmd := exec.Command("explorer", "/select,", fmt.Sprintf("\"%s%c%s%c%s\"", cwd, os.PathSeparator, menu.fldr, os.PathSeparator, menu.itemList[menu.Selected]))
-		cwd = fmt.Sprintf("explorer /select,%s", cmd.Args[2])
+		cwd = fmt.Sprintf("explorer /select, %s", cmd.Args[2])
 		cmd.SysProcAttr = &syscall.SysProcAttr{CmdLine: cwd}
 		cmd.Run()
 	} else if key == sdl.K_p {
