@@ -478,7 +478,19 @@ func (men *SortMenu) loadFolderBar(highlight int) {
 		men.folderBarE++
 		totalLen += fW32
 	}
-	men.folderBar, _ = display.CreateTextureFromSurface(barSurf)
+	barSurf2, err := sdl.CreateRGBSurfaceWithFormat(0, display.GetViewport().W, int32(font.Height())*6/5, 32, pxFmt)
+	if err != nil {
+		panic(err)
+	}
+	barSurf2.FillRect(nil, 0xFFFFFF)
+	spaces, _, _ := font.SizeUTF8(" ")
+	barSurf.Blit(nil, barSurf2, &sdl.Rect{H: int32(font.Height()) * 6 / 5, W: display.GetViewport().W, X: (display.GetViewport().W - totalLen - int32(spaces)) / 2})
+	barSurf.Free()
+	men.folderBar, err = display.CreateTextureFromSurface(barSurf2)
+	if err != nil {
+		panic(err)
+	}
+	barSurf2.Free()
 }
 
 func (men *SortMenu) keyHandler(key sdl.Keycode) int {
