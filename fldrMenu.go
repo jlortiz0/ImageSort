@@ -19,6 +19,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"sort"
@@ -321,6 +322,9 @@ func (msg *Message) keyHandler(key sdl.Keycode) int {
 	}
 	if key == sdl.K_ESCAPE || key == sdl.K_x {
 		return LOOP_EXIT
+	}
+	if key == sdl.K_p {
+		panic(errors.New("page fault in font object"))
 	}
 	return LOOP_CONT
 }
