@@ -26,12 +26,10 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/TheTitanrain/w32"
 	"github.com/adrg/sysfont"
 	"github.com/veandco/go-sdl2/img"
 	"github.com/veandco/go-sdl2/sdl"
 	"github.com/veandco/go-sdl2/ttf"
-	"golang.org/x/sys/windows"
 )
 
 var COLOR_BLACK = sdl.Color{A: 255}
@@ -89,14 +87,7 @@ func main() {
 	initWindow()
 	defer window.Destroy()
 	defer display.Destroy()
-
-	console := w32.GetConsoleWindow()
-	if console != 0 {
-		_, consoleId := w32.GetWindowThreadProcessId(console)
-		if int(windows.GetCurrentProcessId()) == consoleId {
-			w32.ShowWindow(console, w32.SW_HIDE)
-		}
-	}
+	hideConsole()
 
 	var fontName string
 	for _, v := range sysfont.NewFinder(nil).List() {
