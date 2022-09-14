@@ -345,6 +345,7 @@ type OptionsMenu struct {
 
 func doOptionsMenu() int {
 	men := new(OptionsMenu)
+	men.itemList = []string{"Fade Speed: %d", "Dupe Sensitivity: %d", "Sample Size: %d"}
 	action := stdEventLoop(men)
 	men.destroy()
 	f, err := os.OpenFile("ImgSort.cfg", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
@@ -361,11 +362,10 @@ func doOptionsMenu() int {
 }
 
 func (men *OptionsMenu) renderer() {
-	menuOptions := []string{"Fade Speed: %d", "Dupe Sensitivity: %d", "Sample Size: %d"}
 	menuValues := []interface{}{config.FadeSpeed, config.HashDiff, config.HashSize}
-	menuList := make([]string, len(menuOptions))
-	for k := 0; k < len(menuOptions); k++ {
-		menuList[k] = fmt.Sprintf(menuOptions[k], menuValues[k])
+	menuList := make([]string, len(men.itemList))
+	for k := 0; k < len(men.itemList); k++ {
+		menuList[k] = fmt.Sprintf(men.itemList[k], menuValues[k])
 	}
 	menVal := makeMenu(menuList, men.Selected)
 	men.image = menVal.image

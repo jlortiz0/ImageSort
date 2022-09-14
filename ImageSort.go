@@ -114,8 +114,9 @@ func main() {
 		loading, _ = display.CreateTextureFromSurface(txtSurf)
 	}
 	defer func() {
-		err := recover().(error)
-		if err == nil {
+		tmp := recover()
+		err, ok := tmp.(error)
+		if !ok {
 			return
 		}
 		if _, err2 := os.Stat("Px437_IBM_VGA_9x16.ttf"); err2 == nil {
