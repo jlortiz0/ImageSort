@@ -20,6 +20,7 @@ package main
 import (
 	"bufio"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"image"
 	"io"
@@ -376,11 +377,11 @@ func makeDiffAllMenu() *DiffMenu {
 
 func loadHashes() error {
 	f, err := os.Open("imgSort.cache")
-	if err != nil && os.IsExist(err) {
-		return err
-	} else if os.IsNotExist(err) {
+	if err != nil && errors.Is(err, os.ErrNotExist) {
 		hashes = make(map[string]hashEntry, 128)
 		return nil
+	} else if err != nil {
+		return err
 	}
 	defer f.Close()
 	reader := bufio.NewReader(f)
