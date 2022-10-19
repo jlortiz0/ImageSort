@@ -1,4 +1,4 @@
-module jlortiz.org/ImageSort
+module github.com/jlortiz0/ImageSort
 
 go 1.16
 

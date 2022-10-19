@@ -8,7 +8,7 @@ import (
 	"os"
 	"testing"
 
-	imgsort "jlortiz.org/ImageSort/bitbench"
+	imgsort "github.com/jlortiz0/ImageSort/bitbench"
 )
 
 var hashes []imgsort.Hash
