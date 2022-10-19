@@ -22,7 +22,7 @@ func XorAll(hashes []Hash, log func(...interface{})) {
 	for i, v := range hashes {
 		j := i + 1
 		for j < len(hashes) {
-			var temp [HASH_SIZE * HASH_SIZE / 8]byte
+			var temp Hash
 			for k := 0; k < len(v); k++ {
 				temp[k] = v[k] ^ hashes[j][k]
 			}

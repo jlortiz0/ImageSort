@@ -12,8 +12,9 @@ import (
 )
 
 var hashes []imgsort.Hash
+const HashBytes = imgsort.HASH_SIZE * imgsort.HASH_SIZE / 8
 
-func loadHashes(B testing.TB) error {
+func loadHashes(B *testing.B) error {
 	B.Helper()
 	f, err := os.Open("imgSort.cache")
 	if err != nil {
@@ -31,6 +32,7 @@ func loadHashes(B testing.TB) error {
 		return err
 	}
 	entries := binary.BigEndian.Uint32(temp)
+	B.SetBytes(HashBytes/2 * int64(entries * (entries - 1)))
 	hashes = make([]imgsort.Hash, entries)
 	for i := uint32(0); i < entries; i++ {
 		_, err = reader.ReadString(0)
@@ -75,7 +77,7 @@ func BenchmarkTable(B *testing.B) {
 					break
 				}
 			}
-			if c < imgsort.HASH_DIFF {
+			if c <= imgsort.HASH_DIFF {
 				B.Log(i, j)
 			}
 			j++
@@ -117,26 +119,4 @@ func BenchmarkXorIncr3(B *testing.B) {
 	}
 	B.ResetTimer()
 	imgsort.XorIncr3(hashes, B.Log)
-}
-
-func TestCount(T *testing.T) {
-	err := loadHashes(T)
-	if err != nil {
-		T.Fatalf("hash load error: %s", err.Error())
-	}
-	v := hashes[0]
-	j := 1
-	T.Log(v)
-	T.Log(hashes[1])
-	var c uint16
-	for k := 0; k < len(v); k++ {
-		temp := v[k] ^ hashes[j][k]
-		c += bitsTable[temp&0xf]
-		c += bitsTable[temp>>4]
-		// if c > imgsort.HASH_DIFF {
-		// 	break
-		// }
-	}
-	T.Log(c)
-	T.Fail()
 }
