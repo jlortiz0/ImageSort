@@ -368,7 +368,7 @@ func (menu *ImageMenu) renderer() {
 		data, err := menu.ffmpeg.Read8()
 		if err == nil {
 			fw, _ := menu.ffmpeg.GetDimensions()
-			menu.image.Update(nil, data, int(fw)*3)
+			menu.image.Update(nil, data, int(fw)*4)
 		}
 	}
 	display.Copy(menu.image, nil, menu.pos)
