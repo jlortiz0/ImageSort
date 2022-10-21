@@ -32,6 +32,7 @@ import (
 
 	"github.com/devedge/imagehash"
 	"github.com/veandco/go-sdl2/sdl"
+	"jlortiz.org/multisav/streamy"
 )
 
 // #include "libpopcnt.h"
@@ -50,7 +51,7 @@ type DiffMenu struct {
 	pos2     *sdl.Rect
 	diffList [][2]string
 	imageSel int
-	ffmpeg2  *ffmpegReader
+	ffmpeg2  *streamy.AvVideoReader
 }
 
 func makeDiffMenu(fldr string) *DiffMenu {
@@ -480,7 +481,7 @@ func getHash(path string) []byte {
 	case "gif":
 		fallthrough
 	case "mov":
-		img, err = getVideoFrame(path)
+		img, err = streamy.GetVideoFrame(path)
 	default:
 		img, err = imagehash.OpenImg(path)
 	}

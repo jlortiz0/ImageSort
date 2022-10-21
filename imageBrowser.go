@@ -29,12 +29,13 @@ import (
 
 	"github.com/veandco/go-sdl2/img"
 	"github.com/veandco/go-sdl2/sdl"
+	"jlortiz.org/multisav/streamy"
 )
 
 type ImageMenu struct {
 	ChoiceMenu
 	prevMoveDir  bool
-	ffmpeg       *ffmpegReader
+	ffmpeg       *streamy.AvVideoReader
 	fldr         string
 	shouldReload bool
 }
@@ -311,24 +312,25 @@ Error:
 	ind := strings.LastIndexByte(menu.itemList[menu.Selected], '.')
 	ext := strings.ToLower(menu.itemList[menu.Selected][ind+1:])
 	if ext == "mp4" || ext == "webm" || ext == "mov" || ext == "gif" {
-		menu.ffmpeg = newFfmpegReader(menu.fldr + string(os.PathSeparator) + menu.itemList[menu.Selected])
-		if menu.ffmpeg.h < 1 || menu.ffmpeg.w < 1 {
+		menu.ffmpeg, _ = streamy.NewAvVideoReader(menu.fldr + string(os.PathSeparator) + menu.itemList[menu.Selected])
+		fh, fw := menu.ffmpeg.GetDimensions()
+		if fh < 1 || fw < 1 {
 			menu.ffmpeg.Destroy()
 			err = strconv.ErrRange
 			goto Error
 		}
-		menu.image, err = display.CreateTexture(sdl.PIXELFORMAT_RGB24, sdl.TEXTUREACCESS_STREAMING, menu.ffmpeg.w, menu.ffmpeg.h)
+		menu.image, err = display.CreateTexture(uint32(sdl.PIXELFORMAT_RGBA32), sdl.TEXTUREACCESS_STREAMING, fw, fh)
 		if err != nil {
 			menu.image.Destroy()
 			menu.ffmpeg.Destroy()
 			goto Error
 		}
-		if menu.ffmpeg.h*wW >= menu.ffmpeg.w*wH {
+		if fh*wW >= fw*wH {
 			sy = wH
-			sx = wH * menu.ffmpeg.w / menu.ffmpeg.h
+			sx = wH * fw / fh
 		} else {
 			sx = wW
-			sy = wW * menu.ffmpeg.h / menu.ffmpeg.w
+			sy = wW * fh / fw
 		}
 		menu.pos = &sdl.Rect{X: (wW - sx) / 2, Y: (wH - sy) / 2, H: sy, W: sx}
 		menu.animated = true
@@ -363,9 +365,10 @@ func (menu *ImageMenu) renderer() {
 	wW, wH := window.GetSize()
 	display.Clear()
 	if menu.animated {
-		data, err := menu.ffmpeg.Read()
+		data, err := menu.ffmpeg.Read8()
 		if err == nil {
-			menu.image.Update(nil, data, int(menu.ffmpeg.w)*3)
+			fw, _ := menu.ffmpeg.GetDimensions()
+			menu.image.Update(nil, data, int(fw)*3)
 		}
 	}
 	display.Copy(menu.image, nil, menu.pos)

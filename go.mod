@@ -11,4 +11,5 @@ require (
 	github.com/veandco/go-sdl2 v0.4.5
 	golang.org/x/image v0.0.0-20210220032944-ac19c3e999fb // indirect
 	golang.org/x/sys v0.0.0-20220114195835-da31bd327af9
+	jlortiz.org/multisav/streamy v1.0.0
 )
