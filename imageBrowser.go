@@ -26,6 +26,7 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"unsafe"
 
 	"github.com/veandco/go-sdl2/img"
 	"github.com/veandco/go-sdl2/sdl"
@@ -365,7 +366,7 @@ func (menu *ImageMenu) renderer() {
 	if menu.animated {
 		data, err := menu.ffmpeg.Read()
 		if err == nil {
-			menu.image.Update(nil, data, int(menu.ffmpeg.w)*3)
+			menu.image.Update(nil, unsafe.Pointer(&data[0]), int(menu.ffmpeg.w)*3)
 		}
 	}
 	display.Copy(menu.image, nil, menu.pos)
