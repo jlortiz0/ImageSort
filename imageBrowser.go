@@ -312,7 +312,10 @@ Error:
 	ind := strings.LastIndexByte(menu.itemList[menu.Selected], '.')
 	ext := strings.ToLower(menu.itemList[menu.Selected][ind+1:])
 	if ext == "mp4" || ext == "webm" || ext == "mov" || ext == "gif" {
-		menu.ffmpeg, _ = streamy.NewAvVideoReader(menu.fldr+string(os.PathSeparator)+menu.itemList[menu.Selected], 30)
+		menu.ffmpeg, err = streamy.NewAvVideoReader(menu.fldr+string(os.PathSeparator)+menu.itemList[menu.Selected], 30)
+		if err != nil {
+			goto Error
+		}
 		fw, fh := menu.ffmpeg.GetDimensions()
 		if fh < 1 || fw < 1 {
 			menu.ffmpeg.Destroy()
