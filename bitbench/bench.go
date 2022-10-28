@@ -1,11 +1,6 @@
 package bitbench
 
 import (
-	"bufio"
-	"errors"
-	"fmt"
-	"io"
-	"os"
 	"unsafe"
 )
 
@@ -13,93 +8,49 @@ import (
 // #include "bitcnt.h"
 import "C"
 
-const HASH_SIZE = 0x10
-const HASH_DIFF = 64
+const HASH_SIZE = 0x0C
+const HASH_DIFF = 10
 
 type Hash [HASH_SIZE * HASH_SIZE / 8]byte
 
-func XorAll(hashes []Hash, log func(...interface{})) {
-	for i, v := range hashes {
-		j := i + 1
-		for j < len(hashes) {
-			var temp Hash
-			for k := 0; k < len(v); k++ {
-				temp[k] = v[k] ^ hashes[j][k]
-			}
-			if C.popcnt(unsafe.Pointer(&temp[0]), C.ulonglong(len(v))) <= HASH_DIFF {
-				log(i, j)
-			}
-			j++
-		}
-	}
+var bitsTable [16]uint16 = [16]uint16{
+	0, 1, 1, 2, 1, 2, 2, 3,
+	1, 2, 2, 3, 2, 3, 3, 4,
 }
 
-func XorIncr(hashes []Hash, log func(...interface{})) {
-	for i, v := range hashes {
-		j := i + 1
-		for j < len(hashes) {
-			if C.blob_similar((*C.uchar)(&v[0]), (*C.uchar)(&hashes[j][0]), C.ulonglong(len(v))) {
-				log(i, j)
-			}
-			j++
+func TableDiff(h1 Hash, h2 Hash) bool {
+	var c uint16
+	for k := 0; k < len(h1); k++ {
+		temp := h1[k] ^ h2[k]
+		c += bitsTable[temp&0xf]
+		c += bitsTable[temp>>4]
+		if c > HASH_DIFF {
+			break
 		}
 	}
+	return c <= HASH_DIFF
 }
 
-func XorIncr2(hashes []Hash, log func(...interface{})) {
-	for i, v := range hashes {
-		j := i + 1
-		for j < len(hashes) {
-			if C.blob_similar_alt((*C.uchar)(&v[0]), (*C.uchar)(&hashes[j][0]), C.ulonglong(len(v))) {
-				log(i, j)
-			}
-			j++
-		}
+func XorAll(h1 Hash, h2 Hash) bool {
+	var temp Hash
+	for i := 0; i < len(temp); i++ {
+		temp[i] = h1[i] ^ h2[i]
 	}
+	return C.popcnt(unsafe.Pointer(&temp[0]), C.ulonglong(len(temp))) <= HASH_DIFF
 }
 
-func XorIncr3(hashes []Hash, log func(...interface{})) {
-	for i, v := range hashes {
-		j := i + 1
-		for j < len(hashes) {
-			if C.blob_similar_alt2((*C.uchar)(&v[0]), (*C.uchar)(&hashes[j][0]), C.ulonglong(len(v))) {
-				log(i, j)
-			}
-			j++
-		}
-	}
+func XorIncr(h1 Hash, h2 Hash) bool {
+	return bool(C.blob_similar((*C.uchar)(&h1[0]), (*C.uchar)(&h2[0]), C.ulonglong(len(h1))))
+}
+
+func XorIncr2(h1 Hash, h2 Hash) bool {
+	return bool(C.blob_similar_alt((*C.uchar)(&h1[0]), (*C.uchar)(&h2[0]), C.ulonglong(len(h1))))
+}
+
+func XorIncr3(h1 Hash, h2 Hash) bool {
+	return bool(C.blob_similar_alt2((*C.uchar)(&h1[0]), (*C.uchar)(&h2[0]), C.ulonglong(len(h1))))
 }
 
 func main() {
-	f, err := os.Open("imgSort.cache")
-	if err != nil {
-		panic(err)
-	}
-	defer f.Close()
-	reader := bufio.NewReader(f)
-	sz, _ := reader.ReadByte()
-	if sz != HASH_SIZE {
-		panic(errors.New("unexpected hash size"))
-	}
-	temp := make([]byte, 4)
-	_, err = reader.Read(temp)
-	if err != nil {
-		panic(err)
-	}
-	hashes := make([]Hash, 10)
-	for i := uint32(0); i < 10; i++ {
-		_, err = reader.ReadString(0)
-		if err != nil {
-			panic(err)
-		}
-		_, err = io.ReadFull(reader, temp)
-		if err != nil {
-			panic(err)
-		}
-		_, err = io.ReadFull(reader, hashes[i][:])
-		if err != nil {
-			panic(err)
-		}
-	}
-	XorIncr(hashes, func(args ...interface{}) { fmt.Println(args...) })
+
 }

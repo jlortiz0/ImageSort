@@ -12,10 +12,11 @@ import (
 )
 
 var hashes []imgsort.Hash
+
 const HashBytes = imgsort.HASH_SIZE * imgsort.HASH_SIZE / 8
 
-func loadHashes(B *testing.B) error {
-	B.Helper()
+func loadHashes(b *testing.B) error {
+	b.Helper()
 	f, err := os.Open("imgSort.cache")
 	if err != nil {
 		return err
@@ -32,7 +33,6 @@ func loadHashes(B *testing.B) error {
 		return err
 	}
 	entries := binary.BigEndian.Uint32(temp)
-	B.SetBytes(HashBytes/2 * int64(entries * (entries - 1)))
 	hashes = make([]imgsort.Hash, entries)
 	for i := uint32(0); i < entries; i++ {
 		_, err = reader.ReadString(0)
@@ -54,69 +54,50 @@ func loadHashes(B *testing.B) error {
 	return err
 }
 
-var bitsTable [16]uint16 = [16]uint16{
-	0, 1, 1, 2, 1, 2, 2, 3,
-	1, 2, 2, 3, 2, 3, 3, 4,
-}
-
-func BenchmarkTable(B *testing.B) {
-	err := loadHashes(B)
+func loopHelper(b *testing.B, fn func(imgsort.Hash, imgsort.Hash) bool) {
+	b.Helper()
+	err := loadHashes(b)
 	if err != nil {
-		B.Fatalf("hash load error: %s", err.Error())
+		b.Fatalf("hash load error: %s", err.Error())
 	}
-	B.ResetTimer()
-	for i, v := range hashes {
-		j := i + 1
-		for j < len(hashes) {
-			var c uint16
-			for k := 0; k < len(v); k++ {
-				temp := v[k] ^ hashes[j][k]
-				c += bitsTable[temp&0xf]
-				c += bitsTable[temp>>4]
-				if c > imgsort.HASH_DIFF {
-					break
-				}
+	b.SetBytes(2 * HashBytes)
+	b.ResetTimer()
+	i := 0
+	j := 1
+	for f := 0; f < b.N; f++ {
+		v := hashes[i]
+		v2 := hashes[j]
+		c := fn(v, v2)
+		if c {
+			b.Log(i, j)
+		}
+		j += 1
+		if j >= len(hashes) {
+			i += 1
+			if i >= len(hashes)-1 {
+				i = 0
 			}
-			if c <= imgsort.HASH_DIFF {
-				B.Log(i, j)
-			}
-			j++
+			j = i + 1
 		}
 	}
 }
 
-func BenchmarkXorAll(B *testing.B) {
-	err := loadHashes(B)
-	if err != nil {
-		B.Fatalf("hash load error: %s", err.Error())
-	}
-	B.ResetTimer()
-	imgsort.XorAll(hashes, B.Log)
+func BenchmarkTable(b *testing.B) {
+	loopHelper(b, imgsort.TableDiff)
 }
 
-func BenchmarkXorIncr(B *testing.B) {
-	err := loadHashes(B)
-	if err != nil {
-		B.Fatalf("hash load error: %s", err.Error())
-	}
-	B.ResetTimer()
-	imgsort.XorIncr(hashes, B.Log)
+func BenchmarkXorAll(b *testing.B) {
+	loopHelper(b, imgsort.XorAll)
 }
 
-func BenchmarkXorIncr2(B *testing.B) {
-	err := loadHashes(B)
-	if err != nil {
-		B.Fatalf("hash load error: %s", err.Error())
-	}
-	B.ResetTimer()
-	imgsort.XorIncr2(hashes, B.Log)
+func BenchmarkXorIncr(b *testing.B) {
+	loopHelper(b, imgsort.XorIncr)
 }
 
-func BenchmarkXorIncr3(B *testing.B) {
-	err := loadHashes(B)
-	if err != nil {
-		B.Fatalf("hash load error: %s", err.Error())
-	}
-	B.ResetTimer()
-	imgsort.XorIncr3(hashes, B.Log)
+func BenchmarkXorIncr2(b *testing.B) {
+	loopHelper(b, imgsort.XorIncr2)
+}
+
+func BenchmarkXorIncr3(b *testing.B) {
+	loopHelper(b, imgsort.XorIncr3)
 }
