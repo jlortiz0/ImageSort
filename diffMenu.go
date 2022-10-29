@@ -31,8 +31,8 @@ import (
 	"time"
 
 	"github.com/devedge/imagehash"
+	"github.com/jlortiz0/multisav/streamy"
 	"github.com/veandco/go-sdl2/sdl"
-	"jlortiz.org/multisav/streamy"
 )
 
 // #include "libpopcnt.h"

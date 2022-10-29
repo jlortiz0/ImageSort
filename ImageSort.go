@@ -266,7 +266,7 @@ func saveScreen() {
 	if err != nil {
 		panic(err)
 	}
-	fadeFg.Update(nil, buffer, pitch)
+	fadeFg.Update(nil, unsafe.Pointer(&buffer[0]), pitch)
 }
 
 func fadeScreen() {
@@ -278,7 +278,7 @@ func fadeScreen() {
 	if err != nil {
 		panic(err)
 	}
-	fadeBg.Update(nil, buffer, pitch)
+	fadeBg.Update(nil, unsafe.Pointer(&buffer[0]), pitch)
 	rect := &sdl.Rect{W: wW, H: wH}
 	fadeFg.SetBlendMode(sdl.BLENDMODE_BLEND)
 	var i uint8 = 255

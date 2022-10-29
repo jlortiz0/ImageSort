@@ -1,7 +1,7 @@
 package main
 
 import (
-	"jlortiz.org/multisav/streamy"
+	"github.com/jlortiz0/multisav/streamy"
 )
 
 type StreamyWrapper struct {
