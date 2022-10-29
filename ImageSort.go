@@ -47,6 +47,7 @@ var config struct {
 	FadeSpeed uint8
 	HashDiff  uint16
 	HashSize  byte
+	AnimFrame byte
 }
 
 func main() {

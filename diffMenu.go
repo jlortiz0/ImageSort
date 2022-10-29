@@ -481,7 +481,7 @@ func getHash(path string) []byte {
 	case "gif":
 		fallthrough
 	case "mov":
-		img, err = streamy.GetVideoFrame(path)
+		img, err = streamy.GetVideoFrame(path, int(config.AnimFrame))
 	default:
 		img, err = imagehash.OpenImg(path)
 	}

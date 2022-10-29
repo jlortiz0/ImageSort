@@ -328,6 +328,7 @@ Error:
 			menu.ffmpeg.Destroy()
 			goto Error
 		}
+		menu.image.SetBlendMode(sdl.BLENDMODE_BLEND)
 		if fh*wW >= fw*wH {
 			sy = wH
 			sx = wH * fw / fh
