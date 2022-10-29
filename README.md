@@ -2,6 +2,16 @@
 
 It's a rapid image sorter and semi-competent viewer. The original version was written in Python over a few weekends. Due to issues with CPU usage, I switched to Golang and SDL 2.
 
+## Building
+
+In addition to what is needed from `go mod download`, the following dependencies are required to build:
+
+- [SDL](https://github.com/libsdl-org/SDL) v2.0 or later
+- libavcodec, libavformat, libswscale, libavutil v4.2.7 or later (this corresponds to FFmpeg version/package version, not library version)
+  - For Linux, install the dev packages from your package manager of choice
+  - For Windows, download the windows-shared build from [BtbN](https://github.com/BtbN/FFmpeg-Builds/releases) and install the libraries and headers.
+  - If you do not want to use libav, switch to branch `ffmpeg`.
+
 ## Usage
 
 Upon opening the application, it displays a list of subfolders of the folder it's in. If you select a subfolder, it will open it in the image browser. In the image browser, you can view and zoom images to ensure that they are in the correct folder. If they are not in the correct folder, you can send them to the Sort folder. If you do not like the image, you can send it to the Trash. Images in Trash cannot be individually deleted, you can only delete the entire folder.
