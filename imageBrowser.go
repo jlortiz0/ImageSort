@@ -29,13 +29,12 @@ import (
 
 	"github.com/veandco/go-sdl2/img"
 	"github.com/veandco/go-sdl2/sdl"
-	"jlortiz.org/multisav/streamy"
 )
 
 type ImageMenu struct {
 	ChoiceMenu
 	prevMoveDir  bool
-	ffmpeg       *streamy.AvVideoReader
+	ffmpeg       *StreamyWrapper
 	fldr         string
 	shouldReload bool
 }
@@ -312,7 +311,7 @@ Error:
 	ind := strings.LastIndexByte(menu.itemList[menu.Selected], '.')
 	ext := strings.ToLower(menu.itemList[menu.Selected][ind+1:])
 	if ext == "mp4" || ext == "webm" || ext == "mov" || ext == "gif" {
-		menu.ffmpeg, err = streamy.NewAvVideoReader(menu.fldr+string(os.PathSeparator)+menu.itemList[menu.Selected], 30)
+		menu.ffmpeg, err = NewStreamyWrapper(menu.fldr+string(os.PathSeparator)+menu.itemList[menu.Selected], 30)
 		if err != nil {
 			goto Error
 		}
@@ -369,10 +368,11 @@ func (menu *ImageMenu) renderer() {
 	wW, wH := window.GetSize()
 	display.Clear()
 	if menu.animated {
-		data, err := menu.ffmpeg.Read8()
+		b, _, err := menu.image.Lock(nil)
 		if err == nil {
-			fw, _ := menu.ffmpeg.GetDimensions()
-			menu.image.Update(nil, data, int(fw)*4)
+			// TODO: Error checking
+			menu.ffmpeg.Read(b)
+			menu.image.Unlock()
 		}
 	}
 	display.Copy(menu.image, nil, menu.pos)

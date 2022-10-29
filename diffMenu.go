@@ -51,7 +51,7 @@ type DiffMenu struct {
 	pos2     *sdl.Rect
 	diffList [][2]string
 	imageSel int
-	ffmpeg2  *streamy.AvVideoReader
+	ffmpeg2  *StreamyWrapper
 }
 
 func makeDiffMenu(fldr string) *DiffMenu {
