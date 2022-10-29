@@ -26,7 +26,6 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
-	"unsafe"
 
 	"github.com/veandco/go-sdl2/img"
 	"github.com/veandco/go-sdl2/sdl"
@@ -35,7 +34,7 @@ import (
 type ImageMenu struct {
 	ChoiceMenu
 	prevMoveDir  bool
-	ffmpeg       *ffmpegReader
+	ffmpeg       *StreamyWrapper
 	fldr         string
 	shouldReload bool
 }
@@ -312,24 +311,29 @@ Error:
 	ind := strings.LastIndexByte(menu.itemList[menu.Selected], '.')
 	ext := strings.ToLower(menu.itemList[menu.Selected][ind+1:])
 	if ext == "mp4" || ext == "webm" || ext == "mov" || ext == "gif" {
-		menu.ffmpeg = newFfmpegReader(menu.fldr + string(os.PathSeparator) + menu.itemList[menu.Selected])
-		if menu.ffmpeg.h < 1 || menu.ffmpeg.w < 1 {
+		menu.ffmpeg, err = NewStreamyWrapper(menu.fldr+string(os.PathSeparator)+menu.itemList[menu.Selected], 30)
+		if err != nil {
+			goto Error
+		}
+		fw, fh := menu.ffmpeg.GetDimensions()
+		if fh < 1 || fw < 1 {
 			menu.ffmpeg.Destroy()
 			err = strconv.ErrRange
 			goto Error
 		}
-		menu.image, err = display.CreateTexture(sdl.PIXELFORMAT_RGB24, sdl.TEXTUREACCESS_STREAMING, menu.ffmpeg.w, menu.ffmpeg.h)
+		menu.image, err = display.CreateTexture(uint32(sdl.PIXELFORMAT_RGBA32), sdl.TEXTUREACCESS_STREAMING, fw, fh)
 		if err != nil {
 			menu.image.Destroy()
 			menu.ffmpeg.Destroy()
 			goto Error
 		}
-		if menu.ffmpeg.h*wW >= menu.ffmpeg.w*wH {
+		menu.image.SetBlendMode(sdl.BLENDMODE_BLEND)
+		if fh*wW >= fw*wH {
 			sy = wH
-			sx = wH * menu.ffmpeg.w / menu.ffmpeg.h
+			sx = wH * fw / fh
 		} else {
 			sx = wW
-			sy = wW * menu.ffmpeg.h / menu.ffmpeg.w
+			sy = wW * fh / fw
 		}
 		menu.pos = &sdl.Rect{X: (wW - sx) / 2, Y: (wH - sy) / 2, H: sy, W: sx}
 		menu.animated = true
@@ -364,9 +368,11 @@ func (menu *ImageMenu) renderer() {
 	wW, wH := window.GetSize()
 	display.Clear()
 	if menu.animated {
-		data, err := menu.ffmpeg.Read()
+		b, _, err := menu.image.Lock(nil)
 		if err == nil {
-			menu.image.Update(nil, unsafe.Pointer(&data[0]), int(menu.ffmpeg.w)*3)
+			// TODO: Error checking
+			menu.ffmpeg.Read(b)
+			menu.image.Unlock()
 		}
 	}
 	display.Copy(menu.image, nil, menu.pos)

@@ -345,9 +345,13 @@ type OptionsMenu struct {
 
 func doOptionsMenu() int {
 	men := new(OptionsMenu)
-	men.itemList = []string{"Fade Speed: %d", "Dupe Sensitivity: %d", "Sample Size: %d"}
+	men.itemList = []string{"Fade Speed: %d", "Dupe Sensitivity: %d", "Sample Size: %d", "Dedup Frame: %d"}
+	configCopy := config
 	action := stdEventLoop(men)
 	men.destroy()
+	if action == LOOP_QUIT {
+		return action
+	}
 	f, err := os.OpenFile("ImgSort.cfg", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
 		panic(err)
@@ -358,11 +362,30 @@ func doOptionsMenu() int {
 	}
 	f.Write(b)
 	f.Close()
+	if configCopy.HashSize != config.HashSize {
+		for k := range hashes {
+			delete(hashes, k)
+		}
+	} else if configCopy.AnimFrame != config.AnimFrame {
+		for k := range hashes {
+			switch strings.ToLower(k[strings.LastIndexByte(k, '.')+1:]) {
+			case "mp4":
+				fallthrough
+			case "webm":
+				fallthrough
+			case "gif":
+				fallthrough
+			case "mov":
+				delete(hashes, k)
+			default:
+			}
+		}
+	}
 	return action
 }
 
 func (men *OptionsMenu) renderer() {
-	menuValues := []interface{}{config.FadeSpeed, config.HashDiff, config.HashSize}
+	menuValues := []interface{}{config.FadeSpeed, config.HashDiff, config.HashSize, config.AnimFrame}
 	menuList := make([]string, len(men.itemList))
 	for k := 0; k < len(men.itemList); k++ {
 		menuList[k] = fmt.Sprintf(men.itemList[k], menuValues[k])
@@ -401,6 +424,14 @@ func (men *OptionsMenu) keyHandler(key sdl.Keycode) int {
 				}
 			} else if config.HashSize < 32 {
 				config.HashSize += 4
+			}
+		case 3: // AnimFrame
+			if key == sdl.K_LEFT {
+				if config.AnimFrame > 0 {
+					config.AnimFrame--
+				}
+			} else if config.AnimFrame < 30 {
+				config.AnimFrame++
 			}
 		}
 		if config.HashDiff > (uint16(config.HashSize)*uint16(config.HashSize))/2 {

@@ -47,6 +47,7 @@ var config struct {
 	FadeSpeed uint8
 	HashDiff  uint16
 	HashSize  byte
+	AnimFrame byte
 }
 
 func main() {
@@ -82,7 +83,7 @@ func main() {
 	defer sdl.Quit()
 	sdl.EventState(sdl.MOUSEMOTION, sdl.DISABLE)
 	sdl.EventState(sdl.KEYUP, sdl.DISABLE)
-	sdl.SetHint(sdl.HINT_RENDER_SCALE_QUALITY, "2")
+	sdl.SetHint(sdl.HINT_RENDER_SCALE_QUALITY, "best")
 
 	initWindow()
 	defer window.Destroy()
