@@ -1,7 +1,7 @@
 #include "bitcnt.h"
 #include "libpopcnt.h"
 
-#define HASH_DIFF 64
+#define HASH_DIFF 10
 
 bool blob_similar(uint8_t *a1, uint8_t *a2, size_t n) {
     uint64_t *d1 = (uint64_t *)a1;
