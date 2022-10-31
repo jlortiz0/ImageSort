@@ -35,9 +35,6 @@ import (
 	"github.com/veandco/go-sdl2/sdl"
 )
 
-// #include "libpopcnt.h"
-// import "C"
-
 var hashes map[string]hashEntry
 
 type hashEntry struct {
@@ -526,9 +523,4 @@ func compareBits(x, y []byte) uint16 {
 		}
 	}
 	return c
-	// temp := make([]byte, len(x))
-	// for i := 0; i < len(x); i++ {
-	// 	temp[i] = x[i] ^ y[i]
-	// }
-	// return uint16(C.popcnt(unsafe.Pointer(&temp[0]), C.ulonglong(len(x))))
 }
