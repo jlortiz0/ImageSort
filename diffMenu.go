@@ -220,6 +220,7 @@ func (menu *DiffMenu) keyHandler(key sdl.Keycode) int {
 		}
 		if menu.ffmpeg != nil {
 			menu.ffmpeg.Destroy()
+			menu.ffmpeg = nil
 		}
 		newName := menu.diffList[menu.Selected][menu.imageSel]
 		if menu.fldr == "." {
@@ -312,8 +313,12 @@ func (menu *DiffMenu) imageLoader() int {
 }
 
 func (menu *DiffMenu) destroy() {
-	menu.image.Destroy()
+	menu.ImageMenu.destroy()
 	menu.image2.Destroy()
+	if menu.ffmpeg2 != nil {
+		menu.ffmpeg2.Destroy()
+		menu.ffmpeg2 = nil
+	}
 }
 
 func makeDiffAllMenu() *DiffMenu {

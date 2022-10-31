@@ -349,7 +349,7 @@ func stdEventLoop(men Menu) int {
 
 type Menu interface {
 	renderer()
-	// destroy()
+	destroy()
 	keyHandler(sdl.Keycode) int
 	shouldDraw() bool
 }

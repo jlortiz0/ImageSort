@@ -93,6 +93,14 @@ func makeImageMenu(fldr string) *ImageMenu {
 	return menu
 }
 
+func (menu *ImageMenu) destroy() {
+	menu.image.Destroy()
+	if menu.ffmpeg != nil {
+		menu.ffmpeg.Destroy()
+		menu.ffmpeg = nil
+	}
+}
+
 func (menu *ImageMenu) keyHandler(key sdl.Keycode) int {
 	if key == sdl.K_LEFT && menu.Selected > 0 {
 		menu.Selected--
@@ -590,6 +598,6 @@ func (menu *SortMenu) renderer() {
 }
 
 func (menu *SortMenu) destroy() {
-	menu.image.Destroy()
+	menu.ImageMenu.destroy()
 	menu.folderBar.Destroy()
 }
