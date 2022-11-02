@@ -55,7 +55,6 @@ func loadHashes(b *testing.B) error {
 }
 
 func loopHelper(b *testing.B, fn func(imgsort.Hash, imgsort.Hash) bool) {
-	b.Helper()
 	err := loadHashes(b)
 	if err != nil {
 		b.Fatalf("hash load error: %s", err.Error())

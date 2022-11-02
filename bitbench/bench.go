@@ -1,9 +1,5 @@
 package bitbench
 
-import (
-	"unsafe"
-)
-
 // #include "libpopcnt.h"
 // #include "bitcnt.h"
 import "C"
@@ -32,11 +28,7 @@ func TableDiff(h1 Hash, h2 Hash) bool {
 }
 
 func XorAll(h1 Hash, h2 Hash) bool {
-	var temp Hash
-	for i := 0; i < len(temp); i++ {
-		temp[i] = h1[i] ^ h2[i]
-	}
-	return C.popcnt(unsafe.Pointer(&temp[0]), C.ulonglong(len(temp))) <= HASH_DIFF
+	return int(C.xor_all((*C.uchar)(&h1[0]), (*C.uchar)(&h2[0]), C.ulonglong(len(h1)))) <= HASH_DIFF
 }
 
 func XorIncr(h1 Hash, h2 Hash) bool {
