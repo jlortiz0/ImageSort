@@ -1,7 +1,16 @@
 #include "bitcnt.h"
 #include "libpopcnt.h"
+#include <stdlib.h>
 
 #define HASH_DIFF 10
+
+int xor_all(uint8_t *a1, uint8_t *a2, size_t n) {
+    uint8_t *temp = alloca(n);
+    for (uint_fast8_t i = 0; i < n; i++) {
+        temp[i] = a1[i] ^ a2[i];
+    }
+    return popcnt(temp, n);
+}
 
 bool blob_similar(uint8_t *a1, uint8_t *a2, size_t n) {
     uint64_t *d1 = (uint64_t *)a1;

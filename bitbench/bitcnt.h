@@ -9,3 +9,5 @@ bool blob_similar(uint8_t *a1, uint8_t *a2, size_t n);
 bool blob_similar_alt2(uint8_t *a1, uint8_t *a2, size_t n);
 
 bool blob_similar_alt(uint8_t *a1, uint8_t *a2, size_t n);
+
+int xor_all(uint8_t *a1, uint8_t *a2, size_t n);

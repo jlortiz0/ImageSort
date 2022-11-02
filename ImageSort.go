@@ -51,8 +51,7 @@ var config struct {
 }
 
 func main() {
-	var err error
-	if _, err = os.Stat("jlortiz_TEST"); err == nil {
+	if _, err := os.Stat("jlortiz_TEST"); err == nil {
 		os.Chdir("jlortiz_TEST")
 	}
 	f, err := os.Open("ImgSort.cfg")
