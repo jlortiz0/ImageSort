@@ -71,7 +71,8 @@ FolderRegen:
 }
 
 func (menu *FolderMenu) keyHandler(key sdl.Keycode) int {
-	if key == sdl.K_RETURN {
+	switch key {
+	case sdl.K_RETURN:
 		ld := len(menu.itemList)
 		switch menu.Selected {
 		case ld - 1:
@@ -134,8 +135,7 @@ func (menu *FolderMenu) keyHandler(key sdl.Keycode) int {
 			menu.renderer()
 			fadeScreen()
 		}
-		return LOOP_CONT
-	} else if key == sdl.K_d {
+	case sdl.K_d:
 		if menu.Selected < len(menu.itemList)-4 {
 			dName := menu.itemList[menu.Selected]
 			f, err := os.Open(dName)
@@ -153,9 +153,8 @@ func (menu *FolderMenu) keyHandler(key sdl.Keycode) int {
 			saveScreen()
 			menu.renderer()
 			fadeScreen()
-			return LOOP_CONT
 		}
-	} else if key == sdl.K_r {
+	case sdl.K_r:
 		if menu.Selected < len(menu.itemList)-2 {
 			imgMenu := makeDiffMenu(menu.itemList[menu.Selected])
 			if imgMenu != nil {
@@ -175,7 +174,7 @@ func (menu *FolderMenu) keyHandler(key sdl.Keycode) int {
 			menu.renderer()
 			fadeScreen()
 		}
-	} else if key == sdl.K_u {
+	case sdl.K_u:
 		imgMenu := makeDiffAllMenu()
 		if imgMenu != nil {
 			saveScreen()
@@ -193,8 +192,10 @@ func (menu *FolderMenu) keyHandler(key sdl.Keycode) int {
 		saveScreen()
 		menu.renderer()
 		fadeScreen()
+	default:
+		return menu.ChoiceMenu.keyHandler(key)
 	}
-	return menu.ChoiceMenu.keyHandler(key)
+	return LOOP_CONT
 }
 
 func createNewFolder(output string) string {

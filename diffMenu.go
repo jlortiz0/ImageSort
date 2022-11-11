@@ -26,7 +26,6 @@ import (
 	"io"
 	"os"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
 
@@ -158,7 +157,8 @@ func (menu *DiffMenu) initDiff() int {
 }
 
 func (menu *DiffMenu) keyHandler(key sdl.Keycode) int {
-	if key == sdl.K_q {
+	switch key {
+	case sdl.K_q:
 		menu.imageSel ^= 1
 		menu.image, menu.image2 = menu.image2, menu.image
 		menu.pos, menu.pos2 = menu.pos2, menu.pos
@@ -171,31 +171,9 @@ func (menu *DiffMenu) keyHandler(key sdl.Keycode) int {
 			display.SetDrawColor(40, 40, 40, 0)
 		}
 		menu.drawNext = true
-	} else if key == sdl.K_LEFT && menu.Selected > 0 {
-		menu.Selected--
-		menu.prevMoveDir = false
-		menu.shouldReload = true
-		menu.drawNext = true
-		return LOOP_CONT
-	} else if key == sdl.K_RIGHT && menu.Selected < len(menu.itemList)-1 {
-		menu.Selected++
-		menu.prevMoveDir = true
-		menu.drawNext = true
-		menu.shouldReload = true
-		return LOOP_CONT
-	} else if key == sdl.K_HOME && menu.Selected > 0 {
-		menu.Selected = 0
-		menu.prevMoveDir = false
-		menu.drawNext = true
-		menu.shouldReload = true
-		return LOOP_CONT
-	} else if key == sdl.K_END && menu.Selected < len(menu.itemList) {
-		menu.Selected = len(menu.itemList) - 1
-		menu.prevMoveDir = true
-		menu.drawNext = true
-		menu.shouldReload = true
-		return LOOP_CONT
-	} else if key == sdl.K_x || key == sdl.K_c {
+	case sdl.K_x:
+		fallthrough
+	case sdl.K_c:
 		targetFldr := "Sort" + string(os.PathSeparator)
 		if key == sdl.K_c {
 			targetFldr = "Trash" + string(os.PathSeparator)
@@ -251,23 +229,10 @@ func (menu *DiffMenu) keyHandler(key sdl.Keycode) int {
 		menu.renderer()
 		display.Present()
 		return ret
-	} else if key == sdl.K_g {
-		str := createNewFolder(strconv.Itoa(menu.Selected + 1))
-		if str == "CANCEL" {
-			return LOOP_QUIT
-		} else if str != "" {
-			saveScreen()
-			i, err := strconv.Atoi(str)
-			if err == nil {
-				menu.Selected = i - 1
-				menu.imageLoader()
-			}
-			menu.renderer()
-			fadeScreen()
-		}
-
+	default:
+		return menu.ImageMenu.keyHandler(key)
 	}
-	return menu.ImageMenu.keyHandler(key)
+	return LOOP_CONT
 }
 
 func (menu *DiffMenu) renderer() {
@@ -289,7 +254,7 @@ func (menu *DiffMenu) imageLoader() int {
 			menu.Selected--
 		} else {
 			copy(menu.diffList[menu.Selected:], menu.diffList[menu.Selected+1:])
-			if !menu.prevMoveDir && menu.Selected > 0 {
+			if menu.prevMoveDir && menu.Selected > 0 {
 				menu.Selected--
 			}
 		}

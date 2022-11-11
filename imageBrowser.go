@@ -95,46 +95,35 @@ func makeImageMenu(fldr string) *ImageMenu {
 }
 
 func (menu *ImageMenu) keyHandler(key sdl.Keycode) int {
-	if key == sdl.K_LEFT && menu.Selected > 0 {
-		menu.Selected--
-		menu.prevMoveDir = true
-		menu.drawNext = true
-		menu.shouldReload = true
-		// ret := menu.imageLoader()
-		// menu.renderer()
-		// display.Present()
-		// return ret
-		return LOOP_CONT
-	} else if key == sdl.K_RIGHT && menu.Selected < len(menu.itemList)-1 {
-		menu.Selected++
-		menu.prevMoveDir = false
-		menu.drawNext = true
-		menu.shouldReload = true
-		// ret := menu.imageLoader()
-		// menu.renderer()
-		// display.Present()
-		// return ret
-		return LOOP_CONT
-	} else if key == sdl.K_HOME && menu.Selected > 0 {
-		menu.Selected = 0
-		menu.prevMoveDir = false
-		menu.drawNext = true
-		menu.shouldReload = true
-		// ret := menu.imageLoader()
-		// menu.renderer()
-		// display.Present()
-		// return ret
-		return LOOP_CONT
-	} else if key == sdl.K_END && menu.Selected < len(menu.itemList) {
-		menu.Selected = len(menu.itemList) - 1
-		menu.drawNext = true
-		menu.shouldReload = true
-		// ret := menu.imageLoader()
-		// menu.renderer()
-		// display.Present()
-		// return ret
-		return LOOP_CONT
-	} else if key == sdl.K_z {
+	switch key {
+	case sdl.K_LEFT:
+		if menu.Selected > 0 {
+			menu.Selected--
+			menu.prevMoveDir = true
+			menu.drawNext = true
+			menu.shouldReload = true
+		}
+	case sdl.K_RIGHT:
+		if menu.Selected < len(menu.itemList)-1 {
+			menu.Selected++
+			menu.prevMoveDir = false
+			menu.drawNext = true
+			menu.shouldReload = true
+		}
+	case sdl.K_HOME:
+		if menu.Selected != 0 {
+			menu.Selected = 0
+			menu.prevMoveDir = false
+			menu.drawNext = true
+			menu.shouldReload = true
+		}
+	case sdl.K_END:
+		if menu.Selected < len(menu.itemList) {
+			menu.Selected = len(menu.itemList) - 1
+			menu.drawNext = true
+			menu.shouldReload = true
+		}
+	case sdl.K_z:
 		stat, _ := os.Stat(menu.fldr + string(os.PathSeparator) + menu.itemList[menu.Selected])
 		sz := float64(stat.Size()) / 1024
 		if sz > 1024 {
@@ -146,7 +135,9 @@ func (menu *ImageMenu) keyHandler(key sdl.Keycode) int {
 		saveScreen()
 		menu.renderer()
 		fadeScreen()
-	} else if key == sdl.K_x || key == sdl.K_c {
+	case sdl.K_x:
+		fallthrough
+	case sdl.K_c:
 		targetFldr := "Sort" + string(os.PathSeparator)
 		if key == sdl.K_c {
 			targetFldr = "Trash" + string(os.PathSeparator)
@@ -193,58 +184,69 @@ func (menu *ImageMenu) keyHandler(key sdl.Keycode) int {
 		menu.renderer()
 		display.Present()
 		return ret
-	} else if key == sdl.K_DOWN && menu.pos.W > 64 && menu.pos.H > 64 {
-		menu.pos.W = menu.pos.W * 4 / 5
-		menu.pos.H = menu.pos.H * 4 / 5
-		menu.pos.X += menu.pos.W / 8
-		menu.pos.Y += menu.pos.H / 8
-		if menu.pos.W < display.GetViewport().W {
-			menu.pos.X = (display.GetViewport().W - menu.pos.W) / 2
-		} else if menu.pos.X > 0 {
-			menu.pos.X = 0
-		} else if menu.pos.X < display.GetViewport().W-menu.pos.W {
-			menu.pos.X = display.GetViewport().W - menu.pos.W
+	case sdl.K_DOWN:
+		if menu.pos.W > 64 && menu.pos.H > 64 {
+			menu.pos.W = menu.pos.W * 4 / 5
+			menu.pos.H = menu.pos.H * 4 / 5
+			menu.pos.X += menu.pos.W / 8
+			menu.pos.Y += menu.pos.H / 8
+			if menu.pos.W < display.GetViewport().W {
+				menu.pos.X = (display.GetViewport().W - menu.pos.W) / 2
+			} else if menu.pos.X > 0 {
+				menu.pos.X = 0
+			} else if menu.pos.X < display.GetViewport().W-menu.pos.W {
+				menu.pos.X = display.GetViewport().W - menu.pos.W
+			}
+			if menu.pos.H < display.GetViewport().H {
+				menu.pos.Y = (display.GetViewport().H - menu.pos.H) / 2
+			} else if menu.pos.Y > 0 {
+				menu.pos.Y = 0
+			} else if menu.pos.Y < display.GetViewport().H-menu.pos.H {
+				menu.pos.Y = display.GetViewport().H - menu.pos.H
+			}
+			menu.drawNext = true
 		}
-		if menu.pos.H < display.GetViewport().H {
-			menu.pos.Y = (display.GetViewport().H - menu.pos.H) / 2
-		} else if menu.pos.Y > 0 {
-			menu.pos.Y = 0
-		} else if menu.pos.Y < display.GetViewport().H-menu.pos.H {
-			menu.pos.Y = display.GetViewport().H - menu.pos.H
+	case sdl.K_UP:
+		if menu.pos.W < 10000 && menu.pos.H < 10000 {
+			menu.pos.X -= menu.pos.W / 8
+			menu.pos.Y -= menu.pos.H / 8
+			menu.pos.W = menu.pos.W * 5 / 4
+			menu.pos.H = menu.pos.H * 5 / 4
+			menu.drawNext = true
 		}
-		menu.drawNext = true
-	} else if key == sdl.K_UP && menu.pos.W < 10000 && menu.pos.H < 10000 {
-		menu.pos.X -= menu.pos.W / 8
-		menu.pos.Y -= menu.pos.H / 8
-		menu.pos.W = menu.pos.W * 5 / 4
-		menu.pos.H = menu.pos.H * 5 / 4
-		menu.drawNext = true
-	} else if key == sdl.K_w && menu.pos.Y < 0 {
-		menu.pos.Y += 20
-		if menu.pos.Y > 0 {
-			menu.pos.Y = 0
+	case sdl.K_w:
+		if menu.pos.Y < 0 {
+			menu.pos.Y += 20
+			if menu.pos.Y > 0 {
+				menu.pos.Y = 0
+			}
+			menu.drawNext = true
 		}
-		menu.drawNext = true
-	} else if key == sdl.K_a && menu.pos.X < 0 {
-		menu.pos.X += 20
-		if menu.pos.X > 0 {
-			menu.pos.X = 0
+	case sdl.K_a:
+		if menu.pos.X < 0 {
+			menu.pos.X += 20
+			if menu.pos.X > 0 {
+				menu.pos.X = 0
+			}
+			menu.drawNext = true
 		}
-		menu.drawNext = true
-	} else if key == sdl.K_s && menu.pos.H > display.GetViewport().H {
-		menu.pos.Y -= 20
-		if menu.pos.Y < display.GetViewport().H-menu.pos.H {
-			menu.pos.Y = display.GetViewport().H - menu.pos.H
+	case sdl.K_s:
+		if menu.pos.H > display.GetViewport().H {
+			menu.pos.Y -= 20
+			if menu.pos.Y < display.GetViewport().H-menu.pos.H {
+				menu.pos.Y = display.GetViewport().H - menu.pos.H
+			}
+			menu.drawNext = true
 		}
-		menu.renderer()
-		display.Present()
-	} else if key == sdl.K_d && menu.pos.W > display.GetViewport().W {
-		menu.pos.X -= 20
-		if menu.pos.X < display.GetViewport().W-menu.pos.W {
-			menu.pos.X = display.GetViewport().W - menu.pos.W
+	case sdl.K_d:
+		if menu.pos.W > display.GetViewport().W {
+			menu.pos.X -= 20
+			if menu.pos.X < display.GetViewport().W-menu.pos.W {
+				menu.pos.X = display.GetViewport().W - menu.pos.W
+			}
+			menu.drawNext = true
 		}
-		menu.drawNext = true
-	} else if key == sdl.K_g {
+	case sdl.K_g:
 		str := createNewFolder(strconv.Itoa(menu.Selected + 1))
 		if str == "CANCEL" {
 			return LOOP_QUIT
@@ -260,15 +262,19 @@ func (menu *ImageMenu) keyHandler(key sdl.Keycode) int {
 		display.SetDrawColor(64, 64, 64, 0)
 		menu.renderer()
 		fadeScreen()
-	} else if key == sdl.K_v && os.PathSeparator == '\\' {
-		exec.Command("rundll32.exe", "url.dll,FileProtocolHandler", menu.fldr+string(os.PathSeparator)+menu.itemList[menu.Selected]).Run()
-	} else if key == sdl.K_h && os.PathSeparator == '\\' {
-		cwd, _ := os.Getwd()
-		cmd := exec.Command("explorer", "/select,", fmt.Sprintf("\"%s%c%s%c%s\"", cwd, os.PathSeparator, menu.fldr, os.PathSeparator, menu.itemList[menu.Selected]))
-		cwd = fmt.Sprintf("explorer /select, %s", cmd.Args[2])
-		cmd.SysProcAttr = &syscall.SysProcAttr{CmdLine: cwd}
-		cmd.Run()
-	} else if key == sdl.K_p {
+	case sdl.K_v:
+		if os.PathSeparator == '\\' {
+			exec.Command("rundll32.exe", "url.dll,FileProtocolHandler", menu.fldr+string(os.PathSeparator)+menu.itemList[menu.Selected]).Run()
+		}
+	case sdl.K_h:
+		if os.PathSeparator == '\\' {
+			cwd, _ := os.Getwd()
+			cmd := exec.Command("explorer", "/select,", fmt.Sprintf("\"%s%c%s%c%s\"", cwd, os.PathSeparator, menu.fldr, os.PathSeparator, menu.itemList[menu.Selected]))
+			cwd = fmt.Sprintf("explorer /select, %s", cmd.Args[2])
+			cmd.SysProcAttr = &syscall.SysProcAttr{CmdLine: cwd}
+			cmd.Run()
+		}
+	case sdl.K_p:
 		panic(errors.New("no windows available for re-popping"))
 	}
 	return LOOP_CONT
@@ -495,9 +501,9 @@ func (men *SortMenu) loadFolderBar(highlight int) {
 }
 
 func (men *SortMenu) keyHandler(key sdl.Keycode) int {
-	if key == sdl.K_x {
-		return LOOP_CONT
-	} else if key == sdl.K_q {
+	switch key {
+	case sdl.K_x:
+	case sdl.K_q:
 		if !men.showBar {
 			men.showBar = true
 		} else {
@@ -508,22 +514,45 @@ func (men *SortMenu) keyHandler(key sdl.Keycode) int {
 			men.loadFolderBar(-1)
 		}
 		men.drawNext = true
-	} else if key == sdl.K_i {
+	case sdl.K_i:
 		men.showBar = !men.showBar
 		men.drawNext = true
-	} else if key == sdl.K_MINUS || key == sdl.K_EQUALS || key > sdl.K_SLASH && key < sdl.K_COLON {
+	case sdl.K_MINUS:
+		fallthrough
+	case sdl.K_EQUALS:
+		fallthrough
+	case sdl.K_0:
+		fallthrough
+	case sdl.K_1:
+		fallthrough
+	case sdl.K_2:
+		fallthrough
+	case sdl.K_3:
+		fallthrough
+	case sdl.K_4:
+		fallthrough
+	case sdl.K_5:
+		fallthrough
+	case sdl.K_6:
+		fallthrough
+	case sdl.K_7:
+		fallthrough
+	case sdl.K_8:
+		fallthrough
+	case sdl.K_9:
+		var pos int
+		switch key {
+		case sdl.K_MINUS:
+			pos = 10
+		case sdl.K_EQUALS:
+			pos = 11
+		case sdl.K_0:
+			pos = 9
+		default:
+			pos = int(key) - 49
+		}
 		if !men.showBar {
 			return LOOP_CONT
-		}
-		var pos int
-		if key == sdl.K_MINUS {
-			pos = 10
-		} else if key == sdl.K_EQUALS {
-			pos = 11
-		} else if key == sdl.K_0 {
-			pos = 9
-		} else {
-			pos = int(key) - 49
 		}
 		if men.folderBarS+pos >= men.folderBarE {
 			return LOOP_CONT
@@ -567,13 +596,15 @@ func (men *SortMenu) keyHandler(key sdl.Keycode) int {
 		men.renderer()
 		display.Present()
 		return ret
+	default:
+		ret := men.ImageMenu.keyHandler(key)
+		if ret == LOOP_CONT && men.showBar {
+			display.Copy(men.folderBar, nil, &sdl.Rect{H: int32(font.Height()) * 6 / 5, W: display.GetViewport().W})
+			display.Present()
+		}
+		return ret
 	}
-	ret := men.ImageMenu.keyHandler(key)
-	if ret == LOOP_CONT && men.showBar {
-		display.Copy(men.folderBar, nil, &sdl.Rect{H: int32(font.Height()) * 6 / 5, W: display.GetViewport().W})
-		display.Present()
-	}
-	return ret
+	return LOOP_CONT
 }
 
 func (menu *SortMenu) renderer() {
