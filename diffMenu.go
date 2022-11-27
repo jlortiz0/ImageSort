@@ -117,7 +117,7 @@ func (menu *DiffMenu) initDiff() int {
 		if menu.fldr == "." {
 			diffLs[k] = getHash(v)
 		} else {
-			diffLs[k] = getHash(menu.fldr + string(os.PathSeparator) + v)
+			diffLs[k] = getHash(path.Join(menu.fldr, v))
 		}
 		ops++
 		if time.Since(lastUpdate) > time.Second/4 {
@@ -181,6 +181,14 @@ func (menu *DiffMenu) keyHandler(key sdl.Keycode) int {
 			target = "Trash"
 		}
 		return moveFile(menu, path.Join(menu.fldr, menu.diffList[menu.Selected][menu.imageSel]), target)
+	case sdl.K_g:
+		sel := menu.Selected
+		ret := menu.ImageMenu.keyHandler(sdl.K_g)
+		if menu.Selected != sel {
+			menu.imageLoader()
+			menu.drawNext = true
+		}
+		return ret
 	default:
 		return menu.ImageMenu.keyHandler(key)
 	}
@@ -199,8 +207,8 @@ func (menu *DiffMenu) imageLoader() int {
 	if len(menu.diffList) == 0 {
 		return LOOP_EXIT
 	}
-	_, err := os.Stat(menu.fldr + string(os.PathSeparator) + menu.diffList[menu.Selected][0])
-	_, err2 := os.Stat(menu.fldr + string(os.PathSeparator) + menu.diffList[menu.Selected][1])
+	_, err := os.Stat(path.Join(menu.fldr, menu.diffList[menu.Selected][0]))
+	_, err2 := os.Stat(path.Join(menu.fldr, menu.diffList[menu.Selected][1]))
 	if os.IsNotExist(err) || os.IsNotExist(err2) {
 		if menu.Selected == len(menu.diffList)-1 {
 			menu.Selected--
@@ -276,7 +284,7 @@ func makeDiffAllMenu() *DiffMenu {
 					case "png":
 						fallthrough
 					case "jpeg":
-						ls = append(ls, fldr.Name()+string(os.PathSeparator)+v.Name())
+						ls = append(ls, path.Join(fldr.Name(), v.Name()))
 					}
 				}
 			}

@@ -3,9 +3,10 @@ package main
 import (
 	"bufio"
 	"encoding/binary"
+	"fmt"
 	"io"
 	"os"
-	"fmt"
+	"strings"
 )
 
 type hashEntry struct {
@@ -23,6 +24,12 @@ func main() {
 	}
 	dirty := false
 	for k, v := range hashes {
+		if os.PathSeparator == '\\' && strings.ContainsRune(k, os.PathSeparator) {
+			delete(hashes, k)
+			k = strings.ReplaceAll(k, string(os.PathSeparator), "/")
+			hashes[k] = v
+			dirty = true
+		}
 		info, err := os.Stat(k)
 		if err != nil && os.IsNotExist(err) {
 			delete(hashes, k)
