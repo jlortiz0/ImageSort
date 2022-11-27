@@ -61,7 +61,7 @@ FolderRegen:
 		os.Mkdir("Trash", 0600)
 	}
 	dList = append(dList, "Sort", "Trash", "New...", "Options")
-	menu := &FolderMenu{makeMenu(dList, sel)}
+	menu := FolderMenu{makeMenu(dList, sel)}
 	if stdEventLoop(menu) == LOOP_REDO {
 		sel = menu.Selected
 		menu.destroy()
@@ -70,7 +70,7 @@ FolderRegen:
 	menu.destroy()
 }
 
-func (menu *FolderMenu) keyHandler(key sdl.Keycode) int {
+func (menu FolderMenu) keyHandler(key sdl.Keycode) int {
 	switch key {
 	case sdl.K_RETURN:
 		ld := len(menu.itemList)

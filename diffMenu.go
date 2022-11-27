@@ -25,6 +25,7 @@ import (
 	"image"
 	"io"
 	"os"
+	"path"
 	"sort"
 	"strings"
 	"time"
@@ -175,62 +176,11 @@ func (menu *DiffMenu) keyHandler(key sdl.Keycode) int {
 	case sdl.K_x:
 		fallthrough
 	case sdl.K_c:
-		targetFldr := "Sort" + string(os.PathSeparator)
+		target := "Sort"
 		if key == sdl.K_c {
-			targetFldr = "Trash" + string(os.PathSeparator)
+			target = "Trash"
 		}
-		moveFactor := 0
-		for -menu.pos.H < menu.pos.Y && menu.pos.Y < display.GetViewport().H {
-			if key == sdl.K_x {
-				menu.pos.Y -= flingOffsets[moveFactor]
-			} else {
-				menu.pos.Y += flingOffsets[moveFactor]
-			}
-			if moveFactor < len(flingOffsets)-1 {
-				moveFactor++
-			}
-			menu.renderer()
-			display.Present()
-			delay()
-		}
-		if menu.ffmpeg != nil {
-			menu.ffmpeg.Destroy()
-			menu.ffmpeg = nil
-		}
-		newName := menu.diffList[menu.Selected][menu.imageSel]
-		if menu.fldr == "." {
-			newName = newName[strings.LastIndexByte(newName, os.PathSeparator)+1:]
-		}
-		if _, err := os.Stat(targetFldr + newName); err == nil {
-			x := -1
-			dLoc := strings.IndexByte(newName, '.')
-			before := newName
-			var after string
-			if dLoc != -1 {
-				before = newName[:dLoc]
-				after = newName[dLoc+1:]
-			}
-			for ; err == nil; _, err = os.Stat(fmt.Sprintf("%s%s_%d.%s", targetFldr, before, x, after)) {
-				x++
-			}
-			newName = fmt.Sprintf("%s_%d.%s", before, x, after)
-		}
-		os.Rename(menu.fldr+string(os.PathSeparator)+menu.diffList[menu.Selected][menu.imageSel], targetFldr+newName)
-		if menu.fldr == "." {
-			if targetFldr != "Trash"+string(os.PathSeparator) {
-				hashes[targetFldr+newName] = hashes[menu.diffList[menu.Selected][menu.imageSel]]
-			}
-			delete(hashes, menu.diffList[menu.Selected][menu.imageSel])
-		} else {
-			if targetFldr != "Trash"+string(os.PathSeparator) {
-				hashes[targetFldr+newName] = hashes[menu.fldr+string(os.PathSeparator)+menu.diffList[menu.Selected][menu.imageSel]]
-			}
-			delete(hashes, menu.fldr+string(os.PathSeparator)+menu.diffList[menu.Selected][menu.imageSel])
-		}
-		ret := menu.imageLoader()
-		menu.renderer()
-		display.Present()
-		return ret
+		return moveFile(menu, path.Join(menu.fldr, menu.diffList[menu.Selected][menu.imageSel]), target)
 	default:
 		return menu.ImageMenu.keyHandler(key)
 	}
