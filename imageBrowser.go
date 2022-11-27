@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path"
 	"sort"
 	"strconv"
 	"strings"
@@ -31,6 +32,15 @@ import (
 	"github.com/veandco/go-sdl2/img"
 	"github.com/veandco/go-sdl2/sdl"
 )
+
+type ImageBrowser interface {
+	Menu
+	getHeight() int32
+	getY() int32
+	modY(int32)
+	stopAnim()
+	imageLoader() int
+}
 
 type ImageMenu struct {
 	ChoiceMenu
@@ -94,6 +104,75 @@ func makeImageMenu(fldr string) *ImageMenu {
 	return menu
 }
 
+func (menu *ImageMenu) destroy() {
+	menu.image.Destroy()
+	if menu.ffmpeg != nil {
+		menu.ffmpeg.Destroy()
+		menu.ffmpeg = nil
+	}
+}
+
+func (menu *ImageMenu) getHeight() int32 {
+	return menu.pos.H
+}
+
+func (menu *ImageMenu) getY() int32 {
+	return menu.pos.Y
+}
+
+func (menu *ImageMenu) modY(y int32) {
+	menu.pos.Y += y
+}
+
+func (menu *ImageMenu) stopAnim() {
+	if menu.animated {
+		menu.ffmpeg.Destroy()
+		menu.ffmpeg = nil
+	}
+}
+
+func moveFile(menu ImageBrowser, from, target string) int {
+	moveFactor := 0
+	for -menu.getHeight() < menu.getY() && menu.getY() < display.GetViewport().H {
+		if target != "Trash" {
+			menu.modY(-flingOffsets[moveFactor])
+		} else {
+			menu.modY(flingOffsets[moveFactor])
+		}
+		if moveFactor < len(flingOffsets)-1 {
+			moveFactor++
+		}
+		menu.renderer()
+		display.Present()
+		delay()
+	}
+	menu.stopAnim()
+	newName := path.Base(from)
+	if _, err := os.Stat(path.Join(target, newName)); err == nil {
+		x := -1
+		dLoc := strings.IndexByte(newName, '.')
+		before := newName
+		var after string
+		if dLoc != -1 {
+			before = newName[:dLoc]
+			after = newName[dLoc+1:]
+		}
+		for ; err == nil; _, err = os.Stat(path.Join(target, fmt.Sprintf("%s_%d.%s", before, x, after))) {
+			x++
+		}
+		newName = fmt.Sprintf("%s_%d.%s", before, x, after)
+	}
+	os.Rename(from, path.Join(target, newName))
+	if target != "Trash" {
+		hashes[path.Join(target, newName)] = hashes[from]
+	}
+	delete(hashes, from)
+	ret := menu.imageLoader()
+	menu.renderer()
+	display.Present()
+	return ret
+}
+
 func (menu *ImageMenu) keyHandler(key sdl.Keycode) int {
 	switch key {
 	case sdl.K_LEFT:
@@ -138,52 +217,11 @@ func (menu *ImageMenu) keyHandler(key sdl.Keycode) int {
 	case sdl.K_x:
 		fallthrough
 	case sdl.K_c:
-		targetFldr := "Sort" + string(os.PathSeparator)
-		if key == sdl.K_c {
-			targetFldr = "Trash" + string(os.PathSeparator)
+		target := "Trash"
+		if key == sdl.K_x {
+			target = "Sort"
 		}
-		moveFactor := 0
-		for -menu.pos.H < menu.pos.Y && menu.pos.Y < display.GetViewport().H {
-			if key == sdl.K_x {
-				menu.pos.Y -= flingOffsets[moveFactor]
-			} else {
-				menu.pos.Y += flingOffsets[moveFactor]
-			}
-			if moveFactor < len(flingOffsets)-1 {
-				moveFactor++
-			}
-			menu.renderer()
-			display.Present()
-			delay()
-		}
-		if menu.animated {
-			menu.ffmpeg.Destroy()
-			menu.ffmpeg = nil
-		}
-		newName := menu.itemList[menu.Selected]
-		if _, err := os.Stat(targetFldr + newName); err == nil {
-			x := -1
-			dLoc := strings.IndexByte(newName, '.')
-			before := newName
-			var after string
-			if dLoc != -1 {
-				before = newName[:dLoc]
-				after = newName[dLoc+1:]
-			}
-			for ; err == nil; _, err = os.Stat(fmt.Sprintf("%s%s_%d.%s", targetFldr, before, x, after)) {
-				x++
-			}
-			newName = fmt.Sprintf("%s_%d.%s", before, x, after)
-		}
-		os.Rename(menu.fldr+string(os.PathSeparator)+menu.itemList[menu.Selected], targetFldr+newName)
-		if targetFldr != "Trash"+string(os.PathSeparator) {
-			hashes[targetFldr+newName] = hashes[menu.fldr+string(os.PathSeparator)+menu.itemList[menu.Selected]]
-		}
-		delete(hashes, menu.fldr+string(os.PathSeparator)+menu.itemList[menu.Selected])
-		ret := menu.imageLoader()
-		menu.renderer()
-		display.Present()
-		return ret
+		return moveFile(menu, path.Join(menu.fldr, menu.itemList[menu.Selected]), target)
 	case sdl.K_DOWN:
 		if menu.pos.W > 64 && menu.pos.H > 64 {
 			menu.pos.W = menu.pos.W * 4 / 5
@@ -445,8 +483,14 @@ func makeSortMenu(folders []string) *SortMenu {
 	if men.ImageMenu == nil {
 		return nil
 	}
-	men.loadFolderBar(-1)
 	return men
+}
+
+func (men *SortMenu) imageLoader() int {
+	if len(men.folders) > 0 && men.folderBarE == men.folderBarS {
+		men.loadFolderBar(-1)
+	}
+	return men.ImageMenu.imageLoader()
 }
 
 func (men *SortMenu) loadFolderBar(highlight int) {
@@ -498,6 +542,9 @@ func (men *SortMenu) loadFolderBar(highlight int) {
 		panic(err)
 	}
 	barSurf2.Free()
+	if highlight != -1 {
+		men.folderBarE = men.folderBarS
+	}
 }
 
 func (men *SortMenu) keyHandler(key sdl.Keycode) int {
@@ -540,6 +587,9 @@ func (men *SortMenu) keyHandler(key sdl.Keycode) int {
 	case sdl.K_8:
 		fallthrough
 	case sdl.K_9:
+		if !men.showBar {
+			return LOOP_CONT
+		}
 		var pos int
 		switch key {
 		case sdl.K_MINUS:
@@ -551,51 +601,12 @@ func (men *SortMenu) keyHandler(key sdl.Keycode) int {
 		default:
 			pos = int(key) - 49
 		}
-		if !men.showBar {
-			return LOOP_CONT
-		}
 		if men.folderBarS+pos >= men.folderBarE {
 			return LOOP_CONT
 		}
 		targetFldr := men.folders[men.folderBarS+pos] + string(os.PathSeparator)
 		men.loadFolderBar(pos)
-		moveFactor := 0
-		for -men.pos.H < men.pos.Y {
-			men.pos.Y -= flingOffsets[moveFactor]
-			if moveFactor < len(flingOffsets)-1 {
-				moveFactor++
-			}
-			men.renderer()
-			display.Present()
-			delay()
-		}
-		if men.animated {
-			men.ffmpeg.Destroy()
-			men.ffmpeg = nil
-		}
-		newName := men.itemList[men.Selected]
-		if _, err := os.Stat(targetFldr + newName); err == nil {
-			x := -1
-			dLoc := strings.IndexByte(newName, '.')
-			before := newName
-			var after string
-			if dLoc != -1 {
-				before = newName[:dLoc]
-				after = newName[dLoc+1:]
-			}
-			for ; err == nil; _, err = os.Stat(fmt.Sprintf("%s%s_%d.%s", targetFldr, before, x, after)) {
-				x++
-			}
-			newName = fmt.Sprintf("%s_%d.%s", before, x, after)
-		}
-		os.Rename("Sort"+string(os.PathSeparator)+men.itemList[men.Selected], targetFldr+newName)
-		hashes[targetFldr+newName] = hashes["Sort"+string(os.PathSeparator)+men.itemList[men.Selected]]
-		delete(hashes, "Sort"+string(os.PathSeparator)+men.itemList[men.Selected])
-		men.loadFolderBar(-1)
-		ret := men.imageLoader()
-		men.renderer()
-		display.Present()
-		return ret
+		return moveFile(men, path.Join(men.fldr, men.itemList[men.Selected]), targetFldr)
 	default:
 		ret := men.ImageMenu.keyHandler(key)
 		if ret == LOOP_CONT && men.showBar {
