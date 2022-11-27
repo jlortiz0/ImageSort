@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path"
 	"sort"
-	"strings"
 )
 
 func main() {
@@ -18,9 +18,9 @@ func main() {
 	pad := flag.Bool("x", false, "include padding total")
 	per := flag.Bool("p", false, "show as percent of file per folder")
 	nterm := flag.Bool("n", false, "include null terminator as part of folder counts")
-	path := flag.String("i", "imgSort.cache", "path to cache file")
+	fPath := flag.String("i", "imgSort.cache", "path to cache file")
 	flag.Parse()
-	f, err := os.Open(*path)
+	f, err := os.Open(*fPath)
 	if err != nil {
 		panic(err)
 	}
@@ -50,8 +50,7 @@ func main() {
 		if err != nil {
 			break
 		}
-		ind := strings.IndexByte(s, os.PathSeparator)
-		fldr := s[:ind]
+		fldr := path.Dir(s)
 		if *nterm {
 			folders[fldr] += len(s)
 		} else {

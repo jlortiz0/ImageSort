@@ -203,7 +203,7 @@ func (menu *ImageMenu) keyHandler(key sdl.Keycode) int {
 			menu.shouldReload = true
 		}
 	case sdl.K_z:
-		stat, _ := os.Stat(menu.fldr + string(os.PathSeparator) + menu.itemList[menu.Selected])
+		stat, _ := os.Stat(path.Join(menu.fldr, menu.itemList[menu.Selected]))
 		sz := float64(stat.Size()) / 1024
 		if sz > 1024 {
 			displayMessage(fmt.Sprintf("File: %s\nScale Height: %d\nScale Width: %d\nStorage: %.1f MiB", menu.itemList[menu.Selected], menu.pos.H, menu.pos.W, sz/1024))
@@ -336,7 +336,7 @@ func (menu *ImageMenu) imageLoader() int {
 	var err error
 Error:
 	if err != nil {
-		if _, err2 := os.Stat(menu.fldr + string(os.PathSeparator) + menu.itemList[menu.Selected]); os.IsNotExist(err2) {
+		if _, err2 := os.Stat(path.Join(menu.fldr, menu.itemList[menu.Selected])); os.IsNotExist(err2) {
 			if menu.Selected == len(menu.itemList)-1 {
 				menu.Selected--
 			} else {
@@ -356,7 +356,7 @@ Error:
 	ind := strings.LastIndexByte(menu.itemList[menu.Selected], '.')
 	ext := strings.ToLower(menu.itemList[menu.Selected][ind+1:])
 	if ext == "mp4" || ext == "webm" || ext == "mov" || ext == "gif" {
-		menu.ffmpeg = newFfmpegReader(menu.fldr + string(os.PathSeparator) + menu.itemList[menu.Selected])
+		menu.ffmpeg = newFfmpegReader(path.Join(menu.fldr, menu.itemList[menu.Selected]))
 		if menu.ffmpeg.h < 1 || menu.ffmpeg.w < 1 {
 			menu.ffmpeg.Destroy()
 			err = strconv.ErrRange
@@ -379,7 +379,7 @@ Error:
 		menu.animated = true
 		return LOOP_CONT
 	}
-	rawImg, err := img.Load(menu.fldr + string(os.PathSeparator) + menu.itemList[menu.Selected])
+	rawImg, err := img.Load(path.Join(menu.fldr, menu.itemList[menu.Selected]))
 	if err != nil {
 		goto Error
 	} else {
@@ -604,7 +604,7 @@ func (men *SortMenu) keyHandler(key sdl.Keycode) int {
 		if men.folderBarS+pos >= men.folderBarE {
 			return LOOP_CONT
 		}
-		targetFldr := men.folders[men.folderBarS+pos] + string(os.PathSeparator)
+		targetFldr := men.folders[men.folderBarS+pos]
 		men.loadFolderBar(pos)
 		return moveFile(men, path.Join(men.fldr, men.itemList[men.Selected]), targetFldr)
 	default:
