@@ -205,6 +205,7 @@ func (menu *DiffMenu) renderer() {
 
 func (menu *DiffMenu) imageLoader() int {
 	if len(menu.diffList) == 0 {
+		menu.animated = false
 		return LOOP_EXIT
 	}
 	_, err := os.Stat(path.Join(menu.fldr, menu.diffList[menu.Selected][0]))
