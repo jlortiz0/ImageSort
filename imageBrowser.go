@@ -632,6 +632,9 @@ func (men *SortMenu) loadFolderBar(highlight int) {
 func (men *SortMenu) keyHandler(key sdl.Keycode) int {
 	switch key {
 	case sdl.K_x:
+		break
+	case sdl.K_c:
+		return moveFile(men, path.Join("Sort", men.itemList[men.Selected]), "Trash")
 	case sdl.K_q:
 		if !men.showBar {
 			men.showBar = true
