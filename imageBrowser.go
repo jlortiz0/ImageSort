@@ -290,6 +290,19 @@ func (menu *ImageMenu) keyHandler(key sdl.Keycode) int {
 	// 		}
 	// 		menu.drawNext = true
 	// 	}
+	case sdl.K_F3:
+		var sy, sx int32
+		wW, wH := window.GetSize()
+		_, _, fw, fh, _ := menu.image.Query()
+		if fh*wW >= fw*wH {
+			sy = wH
+			sx = wH * fw / fh
+		} else {
+			sx = wW
+			sy = wW * fh / fw
+		}
+		menu.pos = &sdl.Rect{X: (wW - sx) / 2, Y: (wH - sy) / 2, H: sy, W: sx}
+		menu.drawNext = true
 	case sdl.K_g:
 		str := createNewFolder(strconv.Itoa(menu.Selected + 1))
 		if str == "CANCEL" {
