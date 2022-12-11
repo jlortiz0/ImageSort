@@ -223,67 +223,73 @@ func (menu *ImageMenu) keyHandler(key sdl.Keycode) int {
 		}
 		return moveFile(menu, path.Join(menu.fldr, menu.itemList[menu.Selected]), target)
 	case sdl.K_DOWN:
-		if menu.pos.W > 64 && menu.pos.H > 64 {
-			menu.pos.W = menu.pos.W * 4 / 5
-			menu.pos.H = menu.pos.H * 4 / 5
-			menu.pos.X += menu.pos.W / 8
-			menu.pos.Y += menu.pos.H / 8
-			if menu.pos.W < display.GetViewport().W {
-				menu.pos.X = (display.GetViewport().W - menu.pos.W) / 2
-			} else if menu.pos.X > 0 {
-				menu.pos.X = 0
-			} else if menu.pos.X < display.GetViewport().W-menu.pos.W {
-				menu.pos.X = display.GetViewport().W - menu.pos.W
-			}
-			if menu.pos.H < display.GetViewport().H {
-				menu.pos.Y = (display.GetViewport().H - menu.pos.H) / 2
-			} else if menu.pos.Y > 0 {
-				menu.pos.Y = 0
-			} else if menu.pos.Y < display.GetViewport().H-menu.pos.H {
-				menu.pos.Y = display.GetViewport().H - menu.pos.H
-			}
-			menu.drawNext = true
-		}
+		fallthrough
+	// 	if menu.pos.W > 64 && menu.pos.H > 64 {
+	// 		menu.pos.W = menu.pos.W * 4 / 5
+	// 		menu.pos.H = menu.pos.H * 4 / 5
+	// 		menu.pos.X += menu.pos.W / 8
+	// 		menu.pos.Y += menu.pos.H / 8
+	// 		if menu.pos.W < display.GetViewport().W {
+	// 			menu.pos.X = (display.GetViewport().W - menu.pos.W) / 2
+	// 		} else if menu.pos.X > 0 {
+	// 			menu.pos.X = 0
+	// 		} else if menu.pos.X < display.GetViewport().W-menu.pos.W {
+	// 			menu.pos.X = display.GetViewport().W - menu.pos.W
+	// 		}
+	// 		if menu.pos.H < display.GetViewport().H {
+	// 			menu.pos.Y = (display.GetViewport().H - menu.pos.H) / 2
+	// 		} else if menu.pos.Y > 0 {
+	// 			menu.pos.Y = 0
+	// 		} else if menu.pos.Y < display.GetViewport().H-menu.pos.H {
+	// 			menu.pos.Y = display.GetViewport().H - menu.pos.H
+	// 		}
+	// 		menu.drawNext = true
+	// 	}
 	case sdl.K_UP:
-		if menu.pos.W < 10000 && menu.pos.H < 10000 {
-			menu.pos.X -= menu.pos.W / 8
-			menu.pos.Y -= menu.pos.H / 8
-			menu.pos.W = menu.pos.W * 5 / 4
-			menu.pos.H = menu.pos.H * 5 / 4
-			menu.drawNext = true
-		}
+		fallthrough
+	// 	if menu.pos.W < 10000 && menu.pos.H < 10000 {
+	// 		menu.pos.X -= menu.pos.W / 8
+	// 		menu.pos.Y -= menu.pos.H / 8
+	// 		menu.pos.W = menu.pos.W * 5 / 4
+	// 		menu.pos.H = menu.pos.H * 5 / 4
+	// 		menu.drawNext = true
+	// 	}
 	case sdl.K_w:
-		if menu.pos.Y < 0 {
-			menu.pos.Y += 20
-			if menu.pos.Y > 0 {
-				menu.pos.Y = 0
-			}
-			menu.drawNext = true
-		}
+		fallthrough
+	// 	if menu.pos.Y < 0 {
+	// 		menu.pos.Y += 20
+	// 		if menu.pos.Y > 0 {
+	// 			menu.pos.Y = 0
+	// 		}
+	// 		menu.drawNext = true
+	// 	}
 	case sdl.K_a:
-		if menu.pos.X < 0 {
-			menu.pos.X += 20
-			if menu.pos.X > 0 {
-				menu.pos.X = 0
-			}
-			menu.drawNext = true
-		}
+		fallthrough
+	// 	if menu.pos.X < 0 {
+	// 		menu.pos.X += 20
+	// 		if menu.pos.X > 0 {
+	// 			menu.pos.X = 0
+	// 		}
+	// 		menu.drawNext = true
+	//	}
 	case sdl.K_s:
-		if menu.pos.H > display.GetViewport().H {
-			menu.pos.Y -= 20
-			if menu.pos.Y < display.GetViewport().H-menu.pos.H {
-				menu.pos.Y = display.GetViewport().H - menu.pos.H
-			}
-			menu.drawNext = true
-		}
+		fallthrough
+	// 	if menu.pos.H > display.GetViewport().H {
+	// 		menu.pos.Y -= 20
+	// 		if menu.pos.Y < display.GetViewport().H-menu.pos.H {
+	// 			menu.pos.Y = display.GetViewport().H - menu.pos.H
+	// 		}
+	// 		menu.drawNext = true
+	// 	}
 	case sdl.K_d:
-		if menu.pos.W > display.GetViewport().W {
-			menu.pos.X -= 20
-			if menu.pos.X < display.GetViewport().W-menu.pos.W {
-				menu.pos.X = display.GetViewport().W - menu.pos.W
-			}
-			menu.drawNext = true
-		}
+		menu.drawNext = true
+	// 	if menu.pos.W > display.GetViewport().W {
+	// 		menu.pos.X -= 20
+	// 		if menu.pos.X < display.GetViewport().W-menu.pos.W {
+	// 			menu.pos.X = display.GetViewport().W - menu.pos.W
+	// 		}
+	// 		menu.drawNext = true
+	// 	}
 	case sdl.K_g:
 		str := createNewFolder(strconv.Itoa(menu.Selected + 1))
 		if str == "CANCEL" {
@@ -399,12 +405,69 @@ Error:
 	return LOOP_CONT
 }
 
+const imageMenuMoveAmount = 16
+const imageMenuZoomBase = 8
+
 func (menu *ImageMenu) renderer() {
 	if menu.shouldReload {
 		menu.imageLoader()
 		menu.shouldReload = false
 	}
+	keys := sdl.GetKeyboardState()
 	menu.drawNext = menu.animated
+	if keys[sdl.SCANCODE_W] != 0 && menu.pos.Y < 0 {
+		menu.pos.Y += imageMenuMoveAmount
+		if menu.pos.Y > 0 {
+			menu.pos.Y = 0
+		}
+		menu.drawNext = true
+	} else if keys[sdl.SCANCODE_S] != 0 && menu.pos.H > display.GetViewport().H {
+		menu.pos.Y -= imageMenuMoveAmount
+		if menu.pos.Y < display.GetViewport().H-menu.pos.H {
+			menu.pos.Y = display.GetViewport().H - menu.pos.H
+		}
+		menu.drawNext = true
+	}
+	if keys[sdl.SCANCODE_A] != 0 && menu.pos.X < 0 {
+		menu.pos.X += imageMenuMoveAmount
+		if menu.pos.X > 0 {
+			menu.pos.X = 0
+		}
+		menu.drawNext = true
+	} else if keys[sdl.SCANCODE_D] != 0 && menu.pos.W > display.GetViewport().W {
+		menu.pos.X -= imageMenuMoveAmount
+		if menu.pos.X < display.GetViewport().W-menu.pos.W {
+			menu.pos.X = display.GetViewport().W - menu.pos.W
+		}
+		menu.drawNext = true
+	}
+	if keys[sdl.SCANCODE_UP] != 0 && menu.pos.W < 10000 && menu.pos.H < 10000 {
+		menu.pos.X -= menu.pos.W / (imageMenuZoomBase * 2)
+		menu.pos.Y -= menu.pos.H / (imageMenuZoomBase * 2)
+		menu.pos.W = menu.pos.W * (imageMenuZoomBase + 1) / imageMenuZoomBase
+		menu.pos.H = menu.pos.H * (imageMenuZoomBase + 1) / imageMenuZoomBase
+		menu.drawNext = true
+	} else if keys[sdl.SCANCODE_DOWN] != 0 && menu.pos.W > 64 && menu.pos.H > 64 {
+		menu.pos.W = menu.pos.W * imageMenuZoomBase / (imageMenuZoomBase + 1)
+		menu.pos.H = menu.pos.H * imageMenuZoomBase / (imageMenuZoomBase + 1)
+		menu.pos.X += menu.pos.W / (imageMenuZoomBase * 2)
+		menu.pos.Y += menu.pos.H / (imageMenuZoomBase * 2)
+		if menu.pos.W < display.GetViewport().W {
+			menu.pos.X = (display.GetViewport().W - menu.pos.W) / 2
+		} else if menu.pos.X > 0 {
+			menu.pos.X = 0
+		} else if menu.pos.X < display.GetViewport().W-menu.pos.W {
+			menu.pos.X = display.GetViewport().W - menu.pos.W
+		}
+		if menu.pos.H < display.GetViewport().H {
+			menu.pos.Y = (display.GetViewport().H - menu.pos.H) / 2
+		} else if menu.pos.Y > 0 {
+			menu.pos.Y = 0
+		} else if menu.pos.Y < display.GetViewport().H-menu.pos.H {
+			menu.pos.Y = display.GetViewport().H - menu.pos.H
+		}
+		menu.drawNext = true
+	}
 	wW, wH := window.GetSize()
 	display.Clear()
 	if menu.animated {
