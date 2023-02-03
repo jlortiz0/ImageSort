@@ -160,6 +160,72 @@ func (menu *DiffMenu) initDiff() int {
 
 func (menu *DiffMenu) keyHandler(key sdl.Keycode) int {
 	switch key {
+	case sdl.K_u:
+		posBak := menu.pos.X
+		moveFactor := 0
+		for menu.pos.X < display.GetViewport().W {
+			menu.pos.X += flingOffsets[moveFactor]
+			if moveFactor < len(flingOffsets)-1 {
+				moveFactor++
+			}
+			menu.renderer()
+			display.Present()
+			delay()
+		}
+		menu.pos.X = posBak
+		menu.image, menu.image2 = menu.image2, menu.image
+		menu.pos, menu.pos2 = menu.pos2, menu.pos
+		menu.ffmpeg, menu.ffmpeg2 = menu.ffmpeg2, menu.ffmpeg
+		moveFactor = 0
+		for menu.pos.X > -menu.pos.W {
+			if moveFactor < len(flingOffsets) {
+				menu.pos.X -= flingOffsets[moveFactor]
+			} else {
+				menu.pos.X -= flingOffsets[len(flingOffsets)-1]
+			}
+			moveFactor++
+		}
+		for moveFactor > 0 {
+			moveFactor--
+			if moveFactor < len(flingOffsets) {
+				menu.pos.X += flingOffsets[moveFactor]
+			} else {
+				menu.pos.X += flingOffsets[len(flingOffsets)-1]
+			}
+			menu.renderer()
+			display.Present()
+			delay()
+		}
+
+		if menu.ffmpeg != nil {
+			menu.ffmpeg.Destroy()
+			menu.ffmpeg = nil
+			menu.animated = true
+		}
+		if menu.ffmpeg2 != nil {
+			menu.ffmpeg2.Destroy()
+			menu.ffmpeg2 = nil
+		}
+		temp := path.Join(menu.fldr, fmt.Sprintf("%d.tmp", time.Now().Unix()))
+		a := menu.diffList[menu.Selected]
+		err := os.Rename(path.Join(menu.fldr, a[menu.imageSel]), temp)
+		if err != nil {
+			break
+		}
+		err = os.Rename(path.Join(menu.fldr, a[menu.imageSel^1]), path.Join(menu.fldr, a[menu.imageSel]))
+		if err != nil {
+			err = os.Rename(temp, path.Join(menu.fldr, a[menu.imageSel]))
+			if err != nil {
+				panic(err)
+			}
+		}
+		err = os.Rename(temp, path.Join(menu.fldr, a[menu.imageSel^1]))
+		if err != nil {
+			panic(err)
+		}
+		if menu.animated {
+			menu.shouldReload = true
+		}
 	case sdl.K_q:
 		menu.imageSel ^= 1
 		menu.image, menu.image2 = menu.image2, menu.image
