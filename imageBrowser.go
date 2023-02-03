@@ -209,7 +209,6 @@ func (menu *ImageMenu) keyHandler(key sdl.Keycode) int {
 		} else {
 			displayMessage(fmt.Sprintf("File: %s\nScale Height: %d\nScale Width: %d\nStorage: %.1f KiB", menu.itemList[menu.Selected], menu.pos.H, menu.pos.W, sz))
 		}
-		// displayMessage(fmt.Sprintf("File: %s\nScale Height: %d\nScale Width: %d", menu.itemList[menu.Selected], menu.pos.H, menu.pos.W))
 		saveScreen()
 		menu.renderer()
 		fadeScreen()
@@ -223,72 +222,16 @@ func (menu *ImageMenu) keyHandler(key sdl.Keycode) int {
 		return moveFile(menu, path.Join(menu.fldr, menu.itemList[menu.Selected]), target)
 	case sdl.K_DOWN:
 		fallthrough
-	// 	if menu.pos.W > 64 && menu.pos.H > 64 {
-	// 		menu.pos.W = menu.pos.W * 4 / 5
-	// 		menu.pos.H = menu.pos.H * 4 / 5
-	// 		menu.pos.X += menu.pos.W / 8
-	// 		menu.pos.Y += menu.pos.H / 8
-	// 		if menu.pos.W < display.GetViewport().W {
-	// 			menu.pos.X = (display.GetViewport().W - menu.pos.W) / 2
-	// 		} else if menu.pos.X > 0 {
-	// 			menu.pos.X = 0
-	// 		} else if menu.pos.X < display.GetViewport().W-menu.pos.W {
-	// 			menu.pos.X = display.GetViewport().W - menu.pos.W
-	// 		}
-	// 		if menu.pos.H < display.GetViewport().H {
-	// 			menu.pos.Y = (display.GetViewport().H - menu.pos.H) / 2
-	// 		} else if menu.pos.Y > 0 {
-	// 			menu.pos.Y = 0
-	// 		} else if menu.pos.Y < display.GetViewport().H-menu.pos.H {
-	// 			menu.pos.Y = display.GetViewport().H - menu.pos.H
-	// 		}
-	// 		menu.drawNext = true
-	// 	}
 	case sdl.K_UP:
 		fallthrough
-	// 	if menu.pos.W < 10000 && menu.pos.H < 10000 {
-	// 		menu.pos.X -= menu.pos.W / 8
-	// 		menu.pos.Y -= menu.pos.H / 8
-	// 		menu.pos.W = menu.pos.W * 5 / 4
-	// 		menu.pos.H = menu.pos.H * 5 / 4
-	// 		menu.drawNext = true
-	// 	}
 	case sdl.K_w:
 		fallthrough
-	// 	if menu.pos.Y < 0 {
-	// 		menu.pos.Y += 20
-	// 		if menu.pos.Y > 0 {
-	// 			menu.pos.Y = 0
-	// 		}
-	// 		menu.drawNext = true
-	// 	}
 	case sdl.K_a:
 		fallthrough
-	// 	if menu.pos.X < 0 {
-	// 		menu.pos.X += 20
-	// 		if menu.pos.X > 0 {
-	// 			menu.pos.X = 0
-	// 		}
-	// 		menu.drawNext = true
-	//	}
 	case sdl.K_s:
 		fallthrough
-	// 	if menu.pos.H > display.GetViewport().H {
-	// 		menu.pos.Y -= 20
-	// 		if menu.pos.Y < display.GetViewport().H-menu.pos.H {
-	// 			menu.pos.Y = display.GetViewport().H - menu.pos.H
-	// 		}
-	// 		menu.drawNext = true
-	// 	}
 	case sdl.K_d:
 		menu.drawNext = true
-	// 	if menu.pos.W > display.GetViewport().W {
-	// 		menu.pos.X -= 20
-	// 		if menu.pos.X < display.GetViewport().W-menu.pos.W {
-	// 			menu.pos.X = display.GetViewport().W - menu.pos.W
-	// 		}
-	// 		menu.drawNext = true
-	// 	}
 	case sdl.K_F3:
 		var sy, sx int32
 		wW, wH := window.GetSize()
