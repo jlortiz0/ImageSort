@@ -223,6 +223,9 @@ func (menu *DiffMenu) keyHandler(key sdl.Keycode) int {
 		if err != nil {
 			panic(err)
 		}
+		temp2 := hashes[path.Join(menu.fldr, a[menu.imageSel])]
+		hashes[path.Join(menu.fldr, a[menu.imageSel])] = hashes[path.Join(menu.fldr, a[menu.imageSel^1])]
+		hashes[path.Join(menu.fldr, a[menu.imageSel^1])] = temp2
 		if menu.animated {
 			menu.shouldReload = true
 		}
