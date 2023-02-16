@@ -29,6 +29,7 @@ In the deduplicator, you view images in sets of two. Press the Q key to switch b
 - R - Open the deduplicator on the highlighed folder
 - U - Open the deduplicator on all folders except Trash
 - ESC - Close the program
+- F5 - Refresh list
 
 ### Image Browser
 

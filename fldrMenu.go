@@ -192,6 +192,8 @@ func (menu FolderMenu) keyHandler(key sdl.Keycode) int {
 		saveScreen()
 		menu.renderer()
 		fadeScreen()
+	case sdl.K_F5:
+		return LOOP_REDO
 	default:
 		return menu.ChoiceMenu.keyHandler(key)
 	}
