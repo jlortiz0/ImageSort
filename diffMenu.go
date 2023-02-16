@@ -161,12 +161,10 @@ func (menu *DiffMenu) keyHandler(key sdl.Keycode) int {
 	switch key {
 	case sdl.K_u:
 		posBak := menu.pos.X
-		moveFactor := 0
+		moveFactor := int32(0)
 		for menu.pos.X < display.GetViewport().W {
 			menu.pos.X += flingOffsets[moveFactor]
-			if moveFactor < len(flingOffsets)-1 {
-				moveFactor++
-			}
+			moveFactor = minInt32(moveFactor+1, int32(len(flingOffsets)-1))
 			menu.renderer()
 			display.Present()
 			delay()
@@ -175,22 +173,14 @@ func (menu *DiffMenu) keyHandler(key sdl.Keycode) int {
 		menu.image, menu.image2 = menu.image2, menu.image
 		menu.pos, menu.pos2 = menu.pos2, menu.pos
 		menu.ffmpeg, menu.ffmpeg2 = menu.ffmpeg2, menu.ffmpeg
-		moveFactor = 0
+		moveFactor = int32(0)
 		for menu.pos.X > -menu.pos.W {
-			if moveFactor < len(flingOffsets) {
-				menu.pos.X -= flingOffsets[moveFactor]
-			} else {
-				menu.pos.X -= flingOffsets[len(flingOffsets)-1]
-			}
+			menu.pos.X -= flingOffsets[minInt32(moveFactor, int32(len(flingOffsets)-1))]
 			moveFactor++
 		}
 		for moveFactor > 0 {
 			moveFactor--
-			if moveFactor < len(flingOffsets) {
-				menu.pos.X += flingOffsets[moveFactor]
-			} else {
-				menu.pos.X += flingOffsets[len(flingOffsets)-1]
-			}
+			menu.pos.X += flingOffsets[minInt32(moveFactor, int32(len(flingOffsets)-1))]
 			menu.renderer()
 			display.Present()
 			delay()
@@ -240,21 +230,15 @@ func (menu *DiffMenu) keyHandler(key sdl.Keycode) int {
 		} else {
 			display.SetDrawColor(40, 40, 40, 0)
 		}
-		menu.drawNext = true
 	case sdl.K_x:
-		fallthrough
+		return moveFile(menu, path.Join(menu.fldr, menu.diffList[menu.Selected][menu.imageSel]), "Sort")
 	case sdl.K_c:
-		target := "Sort"
-		if key == sdl.K_c {
-			target = "Trash"
-		}
-		return moveFile(menu, path.Join(menu.fldr, menu.diffList[menu.Selected][menu.imageSel]), target)
+		return moveFile(menu, path.Join(menu.fldr, menu.diffList[menu.Selected][menu.imageSel]), "Trash")
 	case sdl.K_g:
 		sel := menu.Selected
 		ret := menu.ImageMenu.keyHandler(sdl.K_g)
 		if menu.Selected != sel {
 			menu.imageLoader()
-			menu.drawNext = true
 		}
 		return ret
 	default:
