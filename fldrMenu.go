@@ -203,13 +203,11 @@ func (menu FolderMenu) keyHandler(key sdl.Keycode) int {
 func createNewFolder(output string) string {
 	wW, wH := window.GetSize()
 	rerender := func() {
-		txtSurf, err := font.RenderUTF8Shaded(output, COLOR_BLACK, COLOR_WHITE)
-		if err != nil {
-			if output == "" {
-				txtSurf, _ = sdl.CreateRGBSurfaceWithFormat(0, 0, int32(font.Height()), 0, 0)
-			} else {
-				panic(err)
-			}
+		var txtSurf *sdl.Surface
+		if output == "" {
+			txtSurf, _ = sdl.CreateRGBSurfaceWithFormat(0, 0, int32(font.Height()), 0, 0)
+		} else {
+			txtSurf, _ = font.RenderUTF8Shaded(output, COLOR_BLACK, COLOR_WHITE)
 		}
 		rect := txtSurf.ClipRect
 		rect.H += 10

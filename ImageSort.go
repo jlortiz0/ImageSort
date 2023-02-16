@@ -339,10 +339,8 @@ func stdEventLoop(men Menu) int {
 				}
 			}
 		}
-		if men.shouldDraw() {
-			men.renderer()
-			display.Present()
-		}
+		men.renderer()
+		display.Present()
 	}
 }
 
@@ -350,7 +348,6 @@ type Menu interface {
 	renderer()
 	destroy()
 	keyHandler(sdl.Keycode) int
-	shouldDraw() bool
 }
 
 type ChoiceMenu struct {
@@ -359,7 +356,6 @@ type ChoiceMenu struct {
 	pos      *sdl.Rect
 	image    *sdl.Texture
 	itemList []string
-	drawNext bool
 }
 
 func makeMenu(list []string, selected int) *ChoiceMenu {
@@ -407,13 +403,11 @@ func (men *ChoiceMenu) keyHandler(key sdl.Keycode) int {
 	switch key {
 	case sdl.K_UP:
 		men.Selected--
-		men.drawNext = true
 		if men.Selected < 0 {
 			men.Selected = len(men.itemList) - 1
 		}
 	case sdl.K_DOWN:
 		men.Selected++
-		men.drawNext = true
 		if men.Selected == len(men.itemList) {
 			men.Selected = 0
 		}
@@ -431,7 +425,6 @@ func (men *ChoiceMenu) keyHandler(key sdl.Keycode) int {
 }
 
 func (menu *ChoiceMenu) renderer() {
-	menu.drawNext = false
 	display.SetDrawColor(64, 64, 64, 0)
 	display.Clear()
 	display.Copy(menu.image, nil, menu.pos)
@@ -441,8 +434,4 @@ func (menu *ChoiceMenu) renderer() {
 
 func (menu *ChoiceMenu) destroy() {
 	menu.image.Destroy()
-}
-
-func (menu *ChoiceMenu) shouldDraw() bool {
-	return menu.drawNext
 }

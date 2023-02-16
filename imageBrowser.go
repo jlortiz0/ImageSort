@@ -178,29 +178,21 @@ func (menu *ImageMenu) keyHandler(key sdl.Keycode) int {
 		if menu.Selected > 0 {
 			menu.Selected--
 			menu.prevMoveDir = true
-			menu.drawNext = true
 			menu.shouldReload = true
 		}
 	case sdl.K_RIGHT:
 		if menu.Selected < len(menu.itemList)-1 {
 			menu.Selected++
 			menu.prevMoveDir = false
-			menu.drawNext = true
 			menu.shouldReload = true
 		}
 	case sdl.K_HOME:
-		if menu.Selected != 0 {
-			menu.Selected = 0
-			menu.prevMoveDir = false
-			menu.drawNext = true
-			menu.shouldReload = true
-		}
+		menu.Selected = 0
+		menu.prevMoveDir = false
+		menu.shouldReload = true
 	case sdl.K_END:
-		if menu.Selected < len(menu.itemList) {
-			menu.Selected = len(menu.itemList) - 1
-			menu.drawNext = true
-			menu.shouldReload = true
-		}
+		menu.Selected = len(menu.itemList) - 1
+		menu.shouldReload = true
 	case sdl.K_z:
 		stat, _ := os.Stat(path.Join(menu.fldr, menu.itemList[menu.Selected]))
 		if stat == nil {
@@ -216,25 +208,9 @@ func (menu *ImageMenu) keyHandler(key sdl.Keycode) int {
 		menu.renderer()
 		fadeScreen()
 	case sdl.K_x:
-		fallthrough
+		return moveFile(menu, path.Join(menu.fldr, menu.itemList[menu.Selected]), "Sort")
 	case sdl.K_c:
-		target := "Trash"
-		if key == sdl.K_x {
-			target = "Sort"
-		}
-		return moveFile(menu, path.Join(menu.fldr, menu.itemList[menu.Selected]), target)
-	case sdl.K_DOWN:
-		fallthrough
-	case sdl.K_UP:
-		fallthrough
-	case sdl.K_w:
-		fallthrough
-	case sdl.K_a:
-		fallthrough
-	case sdl.K_s:
-		fallthrough
-	case sdl.K_d:
-		menu.drawNext = true
+		return moveFile(menu, path.Join(menu.fldr, menu.itemList[menu.Selected]), "Trash")
 	case sdl.K_F3:
 		var sy, sx int32
 		wW, wH := window.GetSize()
@@ -247,7 +223,6 @@ func (menu *ImageMenu) keyHandler(key sdl.Keycode) int {
 			sy = wW * fh / fw
 		}
 		menu.pos = &sdl.Rect{X: (wW - sx) / 2, Y: (wH - sy) / 2, H: sy, W: sx}
-		menu.drawNext = true
 	case sdl.K_g:
 		str := createNewFolder(strconv.Itoa(menu.Selected + 1))
 		if str == "CANCEL" {
@@ -351,21 +326,38 @@ Error:
 	rawImg, err := img.Load(path.Join(menu.fldr, menu.itemList[menu.Selected]))
 	if err != nil {
 		goto Error
-	} else {
-		menu.image, _ = display.CreateTextureFromSurface(rawImg)
-		// var sx, sy int32
-		if rawImg.H*wW >= rawImg.W*wH {
-			sy = wH
-			sx = wH * rawImg.W / rawImg.H
-		} else {
-			sx = wW
-			sy = wW * rawImg.H / rawImg.W
-		}
-		menu.pos = &sdl.Rect{X: (wW - sx) / 2, Y: (wH - sy) / 2, H: sy, W: sx}
 	}
+	menu.image, _ = display.CreateTextureFromSurface(rawImg)
+	// var sx, sy int32
+	if rawImg.H*wW >= rawImg.W*wH {
+		sy = wH
+		sx = wH * rawImg.W / rawImg.H
+	} else {
+		sx = wW
+		sy = wW * rawImg.H / rawImg.W
+	}
+	menu.pos = &sdl.Rect{X: (wW - sx) / 2, Y: (wH - sy) / 2, H: sy, W: sx}
 	menu.animated = false
 	rawImg.Free()
 	return LOOP_CONT
+}
+
+func minInt32(x, y int32) int32 {
+	if x < y {
+		return x
+	}
+	return y
+}
+
+func maxInt32(x, y int32) int32 {
+	if x < y {
+		return y
+	}
+	return x
+}
+
+func clampInt32(x, lower, upper int32) int32 {
+	return minInt32(upper, maxInt32(lower, x))
 }
 
 const imageMenuMoveAmount = 16
@@ -377,61 +369,35 @@ func (menu *ImageMenu) renderer() {
 		menu.shouldReload = false
 	}
 	keys := sdl.GetKeyboardState()
-	menu.drawNext = menu.animated
 	if keys[sdl.SCANCODE_W] != 0 && menu.pos.Y < 0 {
-		menu.pos.Y += imageMenuMoveAmount
-		if menu.pos.Y > 0 {
-			menu.pos.Y = 0
-		}
-		menu.drawNext = true
+		menu.pos.Y = minInt32(0, menu.pos.Y+imageMenuMoveAmount)
 	} else if keys[sdl.SCANCODE_S] != 0 && menu.pos.H > display.GetViewport().H {
-		menu.pos.Y -= imageMenuMoveAmount
-		if menu.pos.Y < display.GetViewport().H-menu.pos.H {
-			menu.pos.Y = display.GetViewport().H - menu.pos.H
-		}
-		menu.drawNext = true
+		menu.pos.Y = maxInt32(display.GetViewport().H-menu.pos.H, menu.pos.Y-imageMenuMoveAmount)
 	}
 	if keys[sdl.SCANCODE_A] != 0 && menu.pos.X < 0 {
-		menu.pos.X += imageMenuMoveAmount
-		if menu.pos.X > 0 {
-			menu.pos.X = 0
-		}
-		menu.drawNext = true
+		menu.pos.X = minInt32(0, menu.pos.X+imageMenuMoveAmount)
 	} else if keys[sdl.SCANCODE_D] != 0 && menu.pos.W > display.GetViewport().W {
-		menu.pos.X -= imageMenuMoveAmount
-		if menu.pos.X < display.GetViewport().W-menu.pos.W {
-			menu.pos.X = display.GetViewport().W - menu.pos.W
-		}
-		menu.drawNext = true
+		menu.pos.X = maxInt32(display.GetViewport().W-menu.pos.W, menu.pos.X-imageMenuMoveAmount)
 	}
 	if keys[sdl.SCANCODE_UP] != 0 && menu.pos.W < 10000 && menu.pos.H < 10000 {
 		menu.pos.X -= menu.pos.W / (imageMenuZoomBase * 2)
 		menu.pos.Y -= menu.pos.H / (imageMenuZoomBase * 2)
 		menu.pos.W = menu.pos.W * (imageMenuZoomBase + 1) / imageMenuZoomBase
 		menu.pos.H = menu.pos.H * (imageMenuZoomBase + 1) / imageMenuZoomBase
-		menu.drawNext = true
 	} else if keys[sdl.SCANCODE_DOWN] != 0 && menu.pos.W > 64 && menu.pos.H > 64 {
 		menu.pos.W = menu.pos.W * imageMenuZoomBase / (imageMenuZoomBase + 1)
 		menu.pos.H = menu.pos.H * imageMenuZoomBase / (imageMenuZoomBase + 1)
-		menu.pos.X += menu.pos.W / (imageMenuZoomBase * 2)
-		menu.pos.Y += menu.pos.H / (imageMenuZoomBase * 2)
 		if menu.pos.W < display.GetViewport().W {
 			menu.pos.X = (display.GetViewport().W - menu.pos.W) / 2
-		} else if menu.pos.X > 0 {
-			menu.pos.X = 0
-		} else if menu.pos.X < display.GetViewport().W-menu.pos.W {
-			menu.pos.X = display.GetViewport().W - menu.pos.W
+		} else {
+			menu.pos.X = clampInt32(menu.pos.X+menu.pos.W/(imageMenuZoomBase*2), display.GetViewport().W-menu.pos.W, 0)
 		}
 		if menu.pos.H < display.GetViewport().H {
 			menu.pos.Y = (display.GetViewport().H - menu.pos.H) / 2
-		} else if menu.pos.Y > 0 {
-			menu.pos.Y = 0
-		} else if menu.pos.Y < display.GetViewport().H-menu.pos.H {
-			menu.pos.Y = display.GetViewport().H - menu.pos.H
+		} else {
+			menu.pos.Y = clampInt32(menu.pos.Y+menu.pos.H/(imageMenuZoomBase*2), display.GetViewport().H-menu.pos.H, 0)
 		}
-		menu.drawNext = true
 	}
-	wW, wH := window.GetSize()
 	display.Clear()
 	if menu.animated {
 		b, _, err := menu.image.Lock(nil)
@@ -442,6 +408,7 @@ func (menu *ImageMenu) renderer() {
 		}
 	}
 	display.Copy(menu.image, nil, menu.pos)
+	wW, wH := window.GetSize()
 	posIndic, err := font.RenderUTF8Shaded(fmt.Sprintf("%d/%d", menu.Selected+1, len(menu.itemList)), COLOR_BLACK, COLOR_WHITE)
 	if err != nil {
 		panic(err)
@@ -491,7 +458,8 @@ func (men *TrashMenu) keyHandler(key sdl.Keycode) int {
 			displayMessage("Trash emptied.")
 			return LOOP_EXIT
 		}
-		men.drawNext = true
+		men.renderer()
+		fadeScreen()
 		return LOOP_CONT
 	}
 	return men.ImageMenu.keyHandler(key)
@@ -576,48 +544,7 @@ func (men *SortMenu) loadFolderBar(highlight int) {
 }
 
 func (men *SortMenu) keyHandler(key sdl.Keycode) int {
-	switch key {
-	case sdl.K_x:
-		break
-	case sdl.K_c:
-		return moveFile(men, path.Join("Sort", men.itemList[men.Selected]), "Trash")
-	case sdl.K_q:
-		if !men.showBar {
-			men.showBar = true
-		} else {
-			men.folderBarS = men.folderBarE
-			if men.folderBarS >= len(men.folders) {
-				men.folderBarS = 0
-			}
-			men.loadFolderBar(-1)
-		}
-		men.drawNext = true
-	case sdl.K_i:
-		men.showBar = !men.showBar
-		men.drawNext = true
-	case sdl.K_MINUS:
-		fallthrough
-	case sdl.K_EQUALS:
-		fallthrough
-	case sdl.K_0:
-		fallthrough
-	case sdl.K_1:
-		fallthrough
-	case sdl.K_2:
-		fallthrough
-	case sdl.K_3:
-		fallthrough
-	case sdl.K_4:
-		fallthrough
-	case sdl.K_5:
-		fallthrough
-	case sdl.K_6:
-		fallthrough
-	case sdl.K_7:
-		fallthrough
-	case sdl.K_8:
-		fallthrough
-	case sdl.K_9:
+	if key == sdl.K_MINUS || key == sdl.K_EQUALS || (key >= sdl.K_0 && key <= sdl.K_9) {
 		if !men.showBar {
 			return LOOP_CONT
 		}
@@ -638,6 +565,21 @@ func (men *SortMenu) keyHandler(key sdl.Keycode) int {
 		targetFldr := men.folders[men.folderBarS+pos]
 		men.loadFolderBar(pos)
 		return moveFile(men, path.Join(men.fldr, men.itemList[men.Selected]), targetFldr)
+	}
+	switch key {
+	case sdl.K_x:
+	case sdl.K_q:
+		if !men.showBar {
+			men.showBar = true
+		} else {
+			men.folderBarS = men.folderBarE
+			if men.folderBarS >= len(men.folders) {
+				men.folderBarS = 0
+			}
+			men.loadFolderBar(-1)
+		}
+	case sdl.K_i:
+		men.showBar = !men.showBar
 	default:
 		ret := men.ImageMenu.keyHandler(key)
 		if ret == LOOP_CONT && men.showBar {
