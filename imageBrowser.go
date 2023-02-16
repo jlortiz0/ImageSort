@@ -203,6 +203,9 @@ func (menu *ImageMenu) keyHandler(key sdl.Keycode) int {
 		}
 	case sdl.K_z:
 		stat, _ := os.Stat(path.Join(menu.fldr, menu.itemList[menu.Selected]))
+		if stat == nil {
+			break
+		}
 		sz := float64(stat.Size()) / 1024
 		if sz > 1024 {
 			displayMessage(fmt.Sprintf("File: %s\nScale Height: %d\nScale Width: %d\nStorage: %.1f MiB", menu.itemList[menu.Selected], menu.pos.H, menu.pos.W, sz/1024))
