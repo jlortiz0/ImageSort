@@ -26,7 +26,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"syscall"
 
 	"github.com/veandco/go-sdl2/img"
 	"github.com/veandco/go-sdl2/sdl"
@@ -244,13 +243,7 @@ func (menu *ImageMenu) keyHandler(key sdl.Keycode) int {
 			exec.Command("rundll32.exe", "url.dll,FileProtocolHandler", menu.fldr+string(os.PathSeparator)+menu.itemList[menu.Selected]).Run()
 		}
 	case sdl.K_h:
-		if os.PathSeparator == '\\' {
-			cwd, _ := os.Getwd()
-			cmd := exec.Command("explorer", "/select,", fmt.Sprintf("\"%s%c%s%c%s\"", cwd, os.PathSeparator, menu.fldr, os.PathSeparator, menu.itemList[menu.Selected]))
-			cwd = fmt.Sprintf("explorer /select, %s", cmd.Args[2])
-			cmd.SysProcAttr = &syscall.SysProcAttr{CmdLine: cwd}
-			cmd.Run()
-		}
+		highlightFile(menu.fldr, menu.itemList[menu.Selected])
 	case sdl.K_p:
 		panic(errors.New("no windows available for re-popping"))
 	}
