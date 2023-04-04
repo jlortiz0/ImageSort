@@ -11,6 +11,10 @@ In addition to what is needed from `go mod download`, the following dependencies
   - For Linux, install the dev packages from your package manager of choice
   - For Windows, download the windows-shared build from [BtbN](https://github.com/BtbN/FFmpeg-Builds/releases) and install the libraries and headers.
   - If you do not want to use libav, switch to branch `ffmpeg`.
+- [libjxl](https://github.com/libjxl/libjxl) v0.7.0 or later
+  - For Linux, install using your package manager if possible. `libbrotli-dev` is also needed.
+  - For Windows, take the DLLs from the latest Windows release and put them in the project root folder. Also, download the folder `lib/include/jxl` and put the header files in a folder called `jxl`.
+  - If you do not want to use jxl, switch to branch `main`.
 
 ## Usage
 
