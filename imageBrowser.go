@@ -20,13 +20,16 @@ package main
 import (
 	"errors"
 	"fmt"
+	"image"
 	"os"
 	"os/exec"
 	"path"
 	"sort"
 	"strconv"
 	"strings"
+	"unsafe"
 
+	_ "github.com/jlortiz0/go-jxl"
 	"github.com/veandco/go-sdl2/img"
 	"github.com/veandco/go-sdl2/sdl"
 )
@@ -82,6 +85,8 @@ func makeImageMenu(fldr string) *ImageMenu {
 			case "png":
 				fallthrough
 			case "jpeg":
+				fallthrough
+			case "jxl":
 				ls = append(ls, v.Name())
 			}
 		}
@@ -314,6 +319,49 @@ Error:
 		}
 		menu.pos = &sdl.Rect{X: (wW - sx) / 2, Y: (wH - sy) / 2, H: sy, W: sx}
 		menu.animated = true
+		return LOOP_CONT
+	} else if ext == "jxl" {
+		var f *os.File
+		f, err = os.Open(path.Join(menu.fldr, menu.itemList[menu.Selected]))
+		if err != nil {
+			goto Error
+		}
+		defer f.Close()
+		var dec image.Image
+		dec, _, err = image.Decode(f)
+		if err != nil {
+			goto Error
+		}
+		bounds := dec.Bounds()
+		fh := int32(bounds.Dy())
+		fw := int32(bounds.Dx())
+		if fh*wW >= fw*wH {
+			sy = wH
+			sx = wH * fw / fh
+		} else {
+			sx = wW
+			sy = wW * fh / fw
+		}
+		menu.pos = &sdl.Rect{X: (wW - sx) / 2, Y: (wH - sy) / 2, H: sy, W: sx}
+		menu.image, err = display.CreateTexture(uint32(sdl.PIXELFORMAT_RGBA32), sdl.TEXTUREACCESS_STATIC, fw, fh)
+		if err != nil {
+			goto Error
+		}
+		menu.image.SetBlendMode(sdl.BLENDMODE_BLEND)
+		var buf []uint8
+		var pitch int
+		switch dec2 := dec.(type) {
+		case *image.NRGBA:
+			buf = dec2.Pix
+			pitch = dec2.Stride
+		case *image.RGBA:
+			buf = dec2.Pix
+			pitch = dec2.Stride
+		default:
+			err = errors.New("only support [N]RGB{A,X}32 jxl images")
+			goto Error
+		}
+		menu.image.Update(nil, unsafe.Pointer(&buf[0]), pitch)
 		return LOOP_CONT
 	}
 	rawImg, err := img.Load(path.Join(menu.fldr, menu.itemList[menu.Selected]))

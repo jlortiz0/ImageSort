@@ -9,3 +9,4 @@ Px437_IBM_VGA_9x16.ttf
 __pycache__
 *.pprof
 *.prof
+*.dll

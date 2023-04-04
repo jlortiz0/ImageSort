@@ -83,6 +83,8 @@ func makeDiffMenu(fldr string) *DiffMenu {
 			case "png":
 				fallthrough
 			case "jpeg":
+				fallthrough
+			case "jxl":
 				ls = append(ls, v.Name())
 			}
 		}
