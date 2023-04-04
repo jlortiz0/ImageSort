@@ -29,7 +29,7 @@ import (
 	"strings"
 	"unsafe"
 
-	_ "github.com/jlortiz0/go-jxl"
+	_ "github.com/jlortiz0/go-jxl-decoder"
 	"github.com/veandco/go-sdl2/img"
 	"github.com/veandco/go-sdl2/sdl"
 )

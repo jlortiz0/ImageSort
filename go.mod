@@ -14,7 +14,7 @@ require (
 	golang.org/x/sys v0.1.0
 )
 
-require github.com/jlortiz0/go-jxl v0.0.0-20230404053752-e657d068c964
+require github.com/jlortiz0/go-jxl-decoder v1.0.0
 
 require (
 	github.com/adrg/strutil v0.2.2 // indirect
