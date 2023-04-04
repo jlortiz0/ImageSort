@@ -71,7 +71,8 @@ Similar to the image browser, but...
 
 Similar to image browser, but...
 
-- Q - Switch images
+- Q - Switch current viewed image
+- U - Swap filepaths of images
 
 ### Options Menu
 
