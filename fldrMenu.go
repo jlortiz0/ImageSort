@@ -55,10 +55,10 @@ FolderRegen:
 	}
 	sort.Strings(dList)
 	if _, err = os.Stat("Sort"); os.IsNotExist(err) {
-		os.Mkdir("Sort", 0600)
+		os.Mkdir("Sort", 0700)
 	}
 	if _, err = os.Stat("Trash"); os.IsNotExist(err) {
-		os.Mkdir("Trash", 0600)
+		os.Mkdir("Trash", 0700)
 	}
 	dList = append(dList, "Sort", "Trash", "New...", "Options")
 	menu := FolderMenu{makeMenu(dList, sel)}
@@ -88,7 +88,7 @@ func (menu FolderMenu) keyHandler(key sdl.Keycode) int {
 				return LOOP_QUIT
 			} else if fldrName != "" {
 				if _, err := os.Stat(fldrName); os.IsNotExist(err) {
-					os.Mkdir(fldrName, 0600)
+					os.Mkdir(fldrName, 0700)
 					return LOOP_REDO
 				}
 			}
