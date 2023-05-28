@@ -257,6 +257,10 @@ func (menu *ImageMenu) imageLoader() int {
 		return LOOP_EXIT
 	}
 	_, _, sx, sy, _ := loading.Query()
+	if menu.image != nil {
+		display.Clear()
+		display.Copy(menu.image, nil, menu.pos)
+	}
 	display.Copy(loading, nil, &sdl.Rect{W: sx, H: sy, X: display.GetViewport().W - sx, Y: display.GetViewport().H - sy})
 	display.Present()
 	if menu.image != nil {
@@ -354,8 +358,8 @@ const imageMenuZoomBase = 8
 
 func (menu *ImageMenu) renderer() {
 	if menu.shouldReload {
-		menu.imageLoader()
 		menu.shouldReload = false
+		menu.imageLoader()
 	}
 	keys := sdl.GetKeyboardState()
 	if keys[sdl.SCANCODE_W] != 0 && menu.pos.Y < 0 {
