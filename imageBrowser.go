@@ -256,11 +256,10 @@ func (menu *ImageMenu) imageLoader() int {
 		return LOOP_EXIT
 	}
 	_, _, sx, sy, _ := loading.Query()
-	if menu.image != nil {
-		display.Clear()
-		display.Copy(menu.image, nil, menu.pos)
-	}
-	display.Copy(loading, nil, &sdl.Rect{W: sx, H: sy, X: display.GetViewport().W - sx, Y: display.GetViewport().H - sy})
+	saveScreen()
+	wW, wH := window.GetSize()
+	display.Copy(fadeFg, nil, &sdl.Rect{W: wW, H: wH})
+	display.Copy(loading, nil, &sdl.Rect{W: sx, H: sy, X: wW - sx, Y: wH - sy})
 	display.Present()
 	if menu.image != nil {
 		menu.image.Destroy()
@@ -288,7 +287,6 @@ Error:
 		menu.image, menu.pos = drawMessage("Error loading " + menu.itemList[menu.Selected] + ":\n" + err.Error())
 		return LOOP_CONT
 	}
-	wW, wH := window.GetSize()
 	ind := strings.LastIndexByte(menu.itemList[menu.Selected], '.')
 	ext := strings.ToLower(menu.itemList[menu.Selected][ind+1:])
 	if ext == "mp4" || ext == "webm" || ext == "mov" || ext == "gif" {
