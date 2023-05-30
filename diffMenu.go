@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"image"
 	"io"
+	"math/bits"
 	"os"
 	"path"
 	"sort"
@@ -476,20 +477,13 @@ func getHash(path string) []byte {
 	return hsh
 }
 
-var bitsTable [16]uint16 = [16]uint16{
-	0, 1, 1, 2, 1, 2, 2, 3,
-	1, 2, 2, 3, 2, 3, 3, 4,
-}
-
 func compareBits(x, y []byte) uint16 {
 	if len(x) != len(y) {
 		return 0xFFFF
 	}
 	var c uint16
 	for i := 0; i < len(x); i++ {
-		temp := x[i] ^ y[i]
-		c += bitsTable[temp&0xf]
-		c += bitsTable[temp>>4]
+		c += uint16(bits.OnesCount8(x[i] ^ y[i]))
 		if c > config.HashDiff {
 			break
 		}
