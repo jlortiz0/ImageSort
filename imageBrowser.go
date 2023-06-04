@@ -586,6 +586,8 @@ func (men *SortMenu) keyHandler(key sdl.Keycode) int {
 			}
 			men.loadFolderBar(-1)
 		}
+	case sdl.K_c:
+		return moveFile(men, path.Join(men.fldr, men.itemList[men.Selected]), "Trash")
 	case sdl.K_i:
 		men.showBar = !men.showBar
 	default:

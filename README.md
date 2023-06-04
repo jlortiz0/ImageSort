@@ -87,5 +87,4 @@ Similar to image browser, but...
 
 ## Known Bugs
 
-- After moving to a new pair in the deduplicator, the background will change to the default color even if this should not happen.
-- When deleting an image or fading to another screen in the Sort folder, the folder bar is not visible.
+- When returning from the info screen in the Sort folder, the folder bar is not visible.
