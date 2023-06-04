@@ -462,11 +462,11 @@ func (men *TrashMenu) keyHandler(key sdl.Keycode) int {
 
 type SortMenu struct {
 	*ImageMenu
-	folders    []string
-	folderBar  *sdl.Texture
-	folderBarS int
-	folderBarE int
-	showBar    bool
+	folders      []string
+	folderBar    *sdl.Texture
+	folderBarInd int
+	folderBarPos []int
+	showBar      bool
 }
 
 func makeSortMenu(folders []string) *SortMenu {
@@ -474,11 +474,30 @@ func makeSortMenu(folders []string) *SortMenu {
 	if men.ImageMenu == nil {
 		return nil
 	}
+	if men.showBar {
+		men.folderBarPos = make([]int, 1, len(folders)/5)
+		keys := []byte{'1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '='}
+		curPos := 0
+		totalLen := int32(0)
+		for k, v := range men.folders {
+			v = fmt.Sprintf(" %c %s ", keys[curPos], v)
+			fW, _, _ := font.SizeUTF8(v)
+			fW32 := int32(fW)
+			if fW32+totalLen > display.GetViewport().W {
+				men.folderBarPos = append(men.folderBarPos, k)
+				totalLen = 0
+				curPos = 0
+			}
+			curPos++
+			totalLen += fW32
+		}
+		men.folderBarPos = append(men.folderBarPos, len(folders))
+	}
 	return men
 }
 
 func (men *SortMenu) imageLoader() int {
-	if len(men.folders) > 0 && men.folderBarE == men.folderBarS {
+	if men.showBar && men.folderBar == nil {
 		men.loadFolderBar(-1)
 	}
 	return men.ImageMenu.imageLoader()
@@ -493,18 +512,11 @@ func (men *SortMenu) loadFolderBar(highlight int) {
 		panic(err)
 	}
 	barSurf.FillRect(nil, 0xFFFFFF)
-	lim := men.folderBarS + 12
-	men.folderBarE = men.folderBarS
-	if lim > len(men.folders) {
-		lim = len(men.folders)
-	}
-	for k, v := range men.folders[men.folderBarS:lim] {
+	barS := men.folderBarPos[men.folderBarInd]
+	barE := men.folderBarPos[men.folderBarInd+1]
+	for k, v := range men.folders[barS:barE] {
 		v = fmt.Sprintf(" %c %s ", keys[k], v)
 		fW, _, _ := font.SizeUTF8(v)
-		fW32 := int32(fW)
-		if fW32+totalLen > display.GetViewport().W {
-			break
-		}
 		if highlight == k {
 			// barSurf.FillRect(&sdl.Rect{H: int32(font.Height()), W: fW32, X: totalLen, Y: int32(font.Height()) / 10}, 0xC1DDF3)
 			txtSurf, err := font.RenderUTF8Shaded(v, COLOR_BLACK, COLOR_BLUE)
@@ -517,8 +529,7 @@ func (men *SortMenu) loadFolderBar(highlight int) {
 		} else {
 			drawText(v, barSurf, totalLen, 0)
 		}
-		men.folderBarE++
-		totalLen += fW32
+		totalLen += int32(fW)
 	}
 	barSurf2, err := sdl.CreateRGBSurfaceWithFormat(0, display.GetViewport().W, int32(font.Height())*6/5, 32, pxFmt)
 	if err != nil {
@@ -533,9 +544,6 @@ func (men *SortMenu) loadFolderBar(highlight int) {
 		panic(err)
 	}
 	barSurf2.Free()
-	if highlight != -1 {
-		men.folderBarE = men.folderBarS
-	}
 }
 
 func (men *SortMenu) keyHandler(key sdl.Keycode) int {
@@ -554,12 +562,16 @@ func (men *SortMenu) keyHandler(key sdl.Keycode) int {
 		default:
 			pos = int(key) - 49
 		}
-		if men.folderBarS+pos >= men.folderBarE {
+		barS := men.folderBarPos[men.folderBarInd]
+		barE := men.folderBarPos[men.folderBarInd+1]
+		if barS+pos >= barE {
 			return LOOP_CONT
 		}
-		targetFldr := men.folders[men.folderBarS+pos]
+		targetFldr := men.folders[barS+pos]
 		men.loadFolderBar(pos)
-		return moveFile(men, path.Join(men.fldr, men.itemList[men.Selected]), targetFldr)
+		ret := moveFile(men, path.Join(men.fldr, men.itemList[men.Selected]), targetFldr)
+		men.loadFolderBar(-1)
+		return ret
 	}
 	switch key {
 	case sdl.K_x:
@@ -567,9 +579,16 @@ func (men *SortMenu) keyHandler(key sdl.Keycode) int {
 		if !men.showBar {
 			men.showBar = true
 		} else {
-			men.folderBarS = men.folderBarE
-			if men.folderBarS >= len(men.folders) {
-				men.folderBarS = 0
+			if sdl.GetModState()&sdl.KMOD_SHIFT != 0 {
+				men.folderBarInd--
+				if men.folderBarInd < 0 {
+					men.folderBarInd = len(men.folderBarPos) - 2
+				}
+			} else {
+				men.folderBarInd++
+				if men.folderBarInd >= len(men.folderBarPos)-1 {
+					men.folderBarInd = 0
+				}
 			}
 			men.loadFolderBar(-1)
 		}
