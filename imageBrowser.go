@@ -475,15 +475,18 @@ func makeSortMenu(folders []string) *SortMenu {
 		return nil
 	}
 	if men.showBar {
-		men.folderBarPos = make([]int, 1, len(folders)/5)
+		men.folderBarPos = make([]int, 1, len(folders)/5+1)
 		keys := []byte{'1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '='}
 		curPos := 0
 		totalLen := int32(0)
-		for k, v := range men.folders {
+		for k, v := range folders {
 			v = fmt.Sprintf(" %c %s ", keys[curPos], v)
 			fW, _, _ := font.SizeUTF8(v)
 			fW32 := int32(fW)
-			if fW32+totalLen > display.GetViewport().W {
+			if fW32+totalLen > display.GetViewport().W || curPos+1 == len(keys) {
+				if curPos+1 == len(keys) {
+					k++
+				}
 				men.folderBarPos = append(men.folderBarPos, k)
 				totalLen = 0
 				curPos = 0
