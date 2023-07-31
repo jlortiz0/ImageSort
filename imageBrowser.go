@@ -497,7 +497,11 @@ func (men *TrashMenu) keyHandler(key sdl.Keycode) int {
 				displayMessage(err.Error())
 				return LOOP_CONT
 			}
-			os.Mkdir("Trash", 0644)
+			os.Mkdir("Trash", 0700)
+			if err != nil {
+				displayMessage(err.Error())
+				return LOOP_EXIT
+			}
 			displayMessage("Trash emptied.")
 			return LOOP_EXIT
 		}
@@ -544,7 +548,9 @@ func makeSortMenu(folders []string) *SortMenu {
 			curPos++
 			totalLen += fW32
 		}
-		men.folderBarPos = append(men.folderBarPos, len(folders))
+		if curPos > 1 {
+			men.folderBarPos = append(men.folderBarPos, len(folders))
+		}
 	}
 	return men
 }
