@@ -44,11 +44,11 @@ type ImageBrowser interface {
 }
 
 type ImageMenu struct {
+	ffmpeg *StreamyWrapper
+	fldr   string
 	ChoiceMenu
-	prevMoveDir  bool
-	ffmpeg       *StreamyWrapper
-	fldr         string
 	shouldReload bool
+	prevMoveDir  bool
 }
 
 var flingOffsets = []int32{36, 43, 51, 62, 77, 95, 120, 152, 196, 255, 336, 449, 610, 840}
@@ -516,8 +516,8 @@ type SortMenu struct {
 	*ImageMenu
 	folders      []string
 	folderBar    *sdl.Texture
-	folderBarInd int
 	folderBarPos []int
+	folderBarInd int
 	showBar      bool
 }
 

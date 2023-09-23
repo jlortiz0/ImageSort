@@ -351,11 +351,11 @@ type Menu interface {
 }
 
 type ChoiceMenu struct {
-	Selected int
-	animated bool
 	pos      *sdl.Rect
 	image    *sdl.Texture
 	itemList []string
+	Selected int
+	animated bool
 }
 
 func makeMenu(list []string, selected int) *ChoiceMenu {

@@ -44,12 +44,12 @@ type hashEntry struct {
 }
 
 type DiffMenu struct {
-	ImageMenu
 	image2   *sdl.Texture
 	pos2     *sdl.Rect
-	diffList [][2]string
-	imageSel int
 	ffmpeg2  *StreamyWrapper
+	diffList [][2]string
+	ImageMenu
+	imageSel int
 }
 
 func makeDiffMenu(fldr string) *DiffMenu {
