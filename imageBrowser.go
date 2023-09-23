@@ -371,22 +371,24 @@ func (menu *ImageMenu) renderer() {
 		menu.pos.X = maxInt32(display.GetViewport().W-menu.pos.W, menu.pos.X-imageMenuMoveAmount)
 	}
 	if keys[sdl.SCANCODE_UP] != 0 && menu.pos.W < 10000 && menu.pos.H < 10000 {
-		menu.pos.X -= menu.pos.W / (imageMenuZoomBase * 2)
-		menu.pos.Y -= menu.pos.H / (imageMenuZoomBase * 2)
-		menu.pos.W = menu.pos.W * (imageMenuZoomBase + 1) / imageMenuZoomBase
-		menu.pos.H = menu.pos.H * (imageMenuZoomBase + 1) / imageMenuZoomBase
+		vp := display.GetViewport()
+		menu.pos.X -= (vp.W/2 - menu.pos.X) / imageMenuZoomBase
+		menu.pos.Y -= (vp.H/2 - menu.pos.Y) / imageMenuZoomBase
+		menu.pos.W += menu.pos.W / imageMenuZoomBase
+		menu.pos.H += menu.pos.H / imageMenuZoomBase
 	} else if keys[sdl.SCANCODE_DOWN] != 0 && menu.pos.W > 64 && menu.pos.H > 64 {
-		menu.pos.W = menu.pos.W * imageMenuZoomBase / (imageMenuZoomBase + 1)
-		menu.pos.H = menu.pos.H * imageMenuZoomBase / (imageMenuZoomBase + 1)
-		if menu.pos.W < display.GetViewport().W {
-			menu.pos.X = (display.GetViewport().W - menu.pos.W) / 2
+		menu.pos.W -= menu.pos.W / (imageMenuZoomBase + 1)
+		menu.pos.H -= menu.pos.H / (imageMenuZoomBase + 1)
+		vp := display.GetViewport()
+		if menu.pos.W < vp.W {
+			menu.pos.X = (vp.W - menu.pos.W) / 2
 		} else {
-			menu.pos.X = clampInt32(menu.pos.X+menu.pos.W/(imageMenuZoomBase*2), display.GetViewport().W-menu.pos.W, 0)
+			menu.pos.X = clampInt32(menu.pos.X+(vp.W/2-menu.pos.X)/(imageMenuZoomBase+1), vp.W-menu.pos.W, 0)
 		}
-		if menu.pos.H < display.GetViewport().H {
-			menu.pos.Y = (display.GetViewport().H - menu.pos.H) / 2
+		if menu.pos.H < vp.H {
+			menu.pos.Y = (vp.H - menu.pos.H) / 2
 		} else {
-			menu.pos.Y = clampInt32(menu.pos.Y+menu.pos.H/(imageMenuZoomBase*2), display.GetViewport().H-menu.pos.H, 0)
+			menu.pos.Y = clampInt32(menu.pos.Y+(vp.H/2-menu.pos.Y)/(imageMenuZoomBase+1), vp.H-menu.pos.H, 0)
 		}
 	}
 	display.Clear()
@@ -469,7 +471,7 @@ func makeSortMenu(folders []string) *SortMenu {
 		return nil
 	}
 	if men.showBar {
-		men.folderBarPos = make([]int, 1, len(folders)/5+1)
+		men.folderBarPos = make([]int, 1, (len(folders)+4)/5+1)
 		keys := []byte{'1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '='}
 		curPos := 0
 		spaces, _, _ := font.SizeUTF8(" ")
