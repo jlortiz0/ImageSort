@@ -256,11 +256,11 @@ func (menu *ImageMenu) imageLoader() int {
 		return LOOP_EXIT
 	}
 	_, _, sx, sy, _ := loading.Query()
-	saveScreen()
 	wW, wH := window.GetSize()
-	display.Copy(fadeFg, nil, &sdl.Rect{W: wW, H: wH})
-	display.Copy(loading, nil, &sdl.Rect{W: sx, H: sy, X: wW - sx, Y: wH - sy})
+	display.SetViewport(&sdl.Rect{W: sx, H: sy, X: wW - sx, Y: wH - sy})
+	display.Copy(loading, nil, &sdl.Rect{W: sx, H: sy})
 	display.Present()
+	display.SetViewport(nil)
 	if menu.image != nil {
 		menu.image.Destroy()
 	}
