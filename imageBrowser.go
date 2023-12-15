@@ -492,7 +492,9 @@ func makeSortMenu(folders []string) *SortMenu {
 			curPos++
 			totalLen += fW32
 		}
-		men.folderBarPos = append(men.folderBarPos, len(folders))
+		if curPos > 1 || len(folders) == 1 {
+			men.folderBarPos = append(men.folderBarPos, len(folders))
+		}
 	}
 	return men
 }
