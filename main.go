@@ -83,6 +83,7 @@ func main() {
 	sdl.EventState(sdl.MOUSEMOTION, sdl.DISABLE)
 	sdl.EventState(sdl.KEYUP, sdl.DISABLE)
 	sdl.SetHint(sdl.HINT_RENDER_SCALE_QUALITY, "best")
+	sdl.SetHint(sdl.HINT_VIDEO_ALLOW_SCREENSAVER, "1")
 
 	initWindow()
 	defer window.Destroy()
