@@ -10,7 +10,7 @@ require (
 	github.com/jlortiz0/multisav/streamy v1.2.1
 	github.com/stretchr/testify v1.7.0 // indirect
 	github.com/veandco/go-sdl2 v0.4.25
-	golang.org/x/image v0.0.0-20210220032944-ac19c3e999fb // indirect
+	golang.org/x/image v0.14.0 // indirect
 	golang.org/x/sys v0.1.0
 )
 
