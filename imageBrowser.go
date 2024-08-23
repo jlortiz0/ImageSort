@@ -21,8 +21,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"os/exec"
 	"path"
+	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -145,8 +145,8 @@ func moveFile(menu ImageBrowser, from, target string) int {
 		delay()
 	}
 	menu.stopAnim()
-	newName := path.Base(from)
-	if _, err := os.Stat(path.Join(target, newName)); err == nil {
+	newName := filepath.Base(from)
+	if _, err := os.Stat(filepath.Join(target, newName)); err == nil {
 		x := -1
 		dLoc := strings.IndexByte(newName, '.')
 		before := newName
@@ -155,12 +155,12 @@ func moveFile(menu ImageBrowser, from, target string) int {
 			before = newName[:dLoc]
 			after = newName[dLoc+1:]
 		}
-		for ; err == nil; _, err = os.Stat(path.Join(target, fmt.Sprintf("%s_%d.%s", before, x, after))) {
+		for ; err == nil; _, err = os.Stat(filepath.Join(target, fmt.Sprintf("%s_%d.%s", before, x, after))) {
 			x++
 		}
 		newName = fmt.Sprintf("%s_%d.%s", before, x, after)
 	}
-	os.Rename(from, path.Join(target, newName))
+	os.Rename(from, filepath.Join(target, newName))
 	if target != "Trash" {
 		hashes[path.Join(target, newName)] = hashes[from]
 	}
@@ -193,7 +193,7 @@ func (menu *ImageMenu) keyHandler(key sdl.Keycode) int {
 		menu.Selected = len(menu.itemList) - 1
 		menu.shouldReload = true
 	case sdl.K_z:
-		stat, _ := os.Stat(path.Join(menu.fldr, menu.itemList[menu.Selected]))
+		stat, _ := os.Stat(filepath.Join(menu.fldr, menu.itemList[menu.Selected]))
 		if stat == nil {
 			break
 		}
@@ -207,9 +207,9 @@ func (menu *ImageMenu) keyHandler(key sdl.Keycode) int {
 		menu.renderer()
 		fadeScreen()
 	case sdl.K_x:
-		return moveFile(menu, path.Join(menu.fldr, menu.itemList[menu.Selected]), "Sort")
+		return moveFile(menu, filepath.Join(menu.fldr, menu.itemList[menu.Selected]), "Sort")
 	case sdl.K_c:
-		return moveFile(menu, path.Join(menu.fldr, menu.itemList[menu.Selected]), "Trash")
+		return moveFile(menu, filepath.Join(menu.fldr, menu.itemList[menu.Selected]), "Trash")
 	case sdl.K_F3:
 		var sy, sx int32
 		wW, wH := window.GetSize()
@@ -239,9 +239,7 @@ func (menu *ImageMenu) keyHandler(key sdl.Keycode) int {
 		menu.renderer()
 		fadeScreen()
 	case sdl.K_v:
-		if os.PathSeparator == '\\' {
-			exec.Command("rundll32.exe", "url.dll,FileProtocolHandler", menu.fldr+string(os.PathSeparator)+menu.itemList[menu.Selected]).Run()
-		}
+		viewFile(filepath.Join(menu.fldr, menu.itemList[menu.Selected]))
 	case sdl.K_h:
 		highlightFile(menu.fldr, menu.itemList[menu.Selected])
 	case sdl.K_p:
@@ -271,7 +269,7 @@ func (menu *ImageMenu) imageLoader() int {
 	var err error
 Error:
 	if err != nil {
-		if _, err2 := os.Stat(path.Join(menu.fldr, menu.itemList[menu.Selected])); os.IsNotExist(err2) {
+		if _, err2 := os.Stat(filepath.Join(menu.fldr, menu.itemList[menu.Selected])); os.IsNotExist(err2) {
 			if menu.Selected == len(menu.itemList)-1 {
 				menu.Selected--
 			} else {
@@ -290,7 +288,7 @@ Error:
 	ind := strings.LastIndexByte(menu.itemList[menu.Selected], '.')
 	ext := strings.ToLower(menu.itemList[menu.Selected][ind+1:])
 	if ext == "mp4" || ext == "webm" || ext == "mov" || ext == "gif" {
-		menu.ffmpeg, err = NewStreamyWrapper(path.Join(menu.fldr, menu.itemList[menu.Selected]), 30)
+		menu.ffmpeg, err = NewStreamyWrapper(filepath.Join(menu.fldr, menu.itemList[menu.Selected]), 30)
 		if err != nil {
 			goto Error
 		}
@@ -318,7 +316,7 @@ Error:
 		menu.animated = true
 		return LOOP_CONT
 	}
-	rawImg, err := img.Load(path.Join(menu.fldr, menu.itemList[menu.Selected]))
+	rawImg, err := img.Load(filepath.Join(menu.fldr, menu.itemList[menu.Selected]))
 	if err != nil {
 		goto Error
 	}
@@ -441,7 +439,7 @@ func (men *TrashMenu) keyHandler(key sdl.Keycode) int {
 	if key == sdl.K_c {
 		return LOOP_CONT
 	} else if key == sdl.K_l {
-		if displayMessage("Sure to empty trash?\nZ - Yes X - No") {
+		if displayMessage("Okay to empty trash?\nZ - Yes X - No") {
 			if men.animated {
 				men.ffmpeg.Destroy()
 				men.ffmpeg = nil
@@ -578,7 +576,7 @@ func (men *SortMenu) keyHandler(key sdl.Keycode) int {
 		}
 		targetFldr := men.folders[barS+pos]
 		men.loadFolderBar(pos)
-		ret := moveFile(men, path.Join(men.fldr, men.itemList[men.Selected]), targetFldr)
+		ret := moveFile(men, filepath.Join(men.fldr, men.itemList[men.Selected]), targetFldr)
 		men.loadFolderBar(-1)
 		return ret
 	}
@@ -601,8 +599,6 @@ func (men *SortMenu) keyHandler(key sdl.Keycode) int {
 			}
 			men.loadFolderBar(-1)
 		}
-	case sdl.K_c:
-		return moveFile(men, path.Join(men.fldr, men.itemList[men.Selected]), "Trash")
 	case sdl.K_i:
 		men.showBar = !men.showBar
 	default:
