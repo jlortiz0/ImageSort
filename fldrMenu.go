@@ -146,7 +146,7 @@ func (menu FolderMenu) keyHandler(key sdl.Keycode) int {
 			f.Close()
 			if len(n) != 0 {
 				displayMessage("Folder " + dName + "\nis not empty.")
-			} else if displayMessage("Sure to delete\nfolder " + dName + "?\nZ - Yes  X - No") {
+			} else if displayMessage("Okay to delete\nfolder " + dName + "?\nZ - Yes  X - No") {
 				os.Remove(dName)
 				return LOOP_REDO
 			}

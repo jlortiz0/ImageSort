@@ -27,6 +27,7 @@ import (
 	"math/bits"
 	"os"
 	"path"
+	"path/filepath"
 	"sort"
 	"strings"
 	"time"
@@ -35,6 +36,8 @@ import (
 	"github.com/veandco/go-sdl2/sdl"
 )
 
+// Use path for keys to hashes, not filepath
+// This allows them to be portable across OSes
 var hashes map[string]hashEntry
 
 type hashEntry struct {
@@ -116,6 +119,9 @@ func (menu *DiffMenu) initDiff() int {
 	for k, v := range menu.itemList {
 		if menu.fldr == "." {
 			diffLs[k] = getHash(v)
+			if os.PathSeparator != '/' {
+				menu.itemList[k] = filepath.Join(path.Split(v))
+			}
 		} else {
 			diffLs[k] = getHash(path.Join(menu.fldr, v))
 		}
@@ -196,20 +202,20 @@ func (menu *DiffMenu) keyHandler(key sdl.Keycode) int {
 			menu.ffmpeg2.Destroy()
 			menu.ffmpeg2 = nil
 		}
-		temp := path.Join(menu.fldr, fmt.Sprintf("%d.tmp", time.Now().Unix()))
+		temp := filepath.Join(menu.fldr, fmt.Sprintf("%d.tmp", time.Now().Unix()))
 		a := menu.diffList[menu.Selected]
-		err := os.Rename(path.Join(menu.fldr, a[menu.imageSel]), temp)
+		err := os.Rename(filepath.Join(menu.fldr, a[menu.imageSel]), temp)
 		if err != nil {
 			break
 		}
-		err = os.Rename(path.Join(menu.fldr, a[menu.imageSel^1]), path.Join(menu.fldr, a[menu.imageSel]))
+		err = os.Rename(filepath.Join(menu.fldr, a[menu.imageSel^1]), filepath.Join(menu.fldr, a[menu.imageSel]))
 		if err != nil {
-			err = os.Rename(temp, path.Join(menu.fldr, a[menu.imageSel]))
+			err = os.Rename(temp, filepath.Join(menu.fldr, a[menu.imageSel]))
 			if err != nil {
 				panic(err)
 			}
 		}
-		err = os.Rename(temp, path.Join(menu.fldr, a[menu.imageSel^1]))
+		err = os.Rename(temp, filepath.Join(menu.fldr, a[menu.imageSel^1]))
 		if err != nil {
 			panic(err)
 		}
@@ -232,9 +238,9 @@ func (menu *DiffMenu) keyHandler(key sdl.Keycode) int {
 			display.SetDrawColor(40, 40, 40, 0)
 		}
 	case sdl.K_x:
-		return moveFile(menu, path.Join(menu.fldr, menu.diffList[menu.Selected][menu.imageSel]), "Sort")
+		return moveFile(menu, filepath.Join(menu.fldr, menu.diffList[menu.Selected][menu.imageSel]), "Sort")
 	case sdl.K_c:
-		return moveFile(menu, path.Join(menu.fldr, menu.diffList[menu.Selected][menu.imageSel]), "Trash")
+		return moveFile(menu, filepath.Join(menu.fldr, menu.diffList[menu.Selected][menu.imageSel]), "Trash")
 	case sdl.K_g:
 		sel := menu.Selected
 		ret := menu.ImageMenu.keyHandler(sdl.K_g)
@@ -261,8 +267,8 @@ func (menu *DiffMenu) imageLoader() int {
 		menu.animated = false
 		return LOOP_EXIT
 	}
-	_, err := os.Stat(path.Join(menu.fldr, menu.diffList[menu.Selected][0]))
-	_, err2 := os.Stat(path.Join(menu.fldr, menu.diffList[menu.Selected][1]))
+	_, err := os.Stat(filepath.Join(menu.fldr, menu.diffList[menu.Selected][0]))
+	_, err2 := os.Stat(filepath.Join(menu.fldr, menu.diffList[menu.Selected][1]))
 	if os.IsNotExist(err) || os.IsNotExist(err2) {
 		if menu.Selected == len(menu.diffList)-1 {
 			menu.Selected--
@@ -334,6 +340,7 @@ func makeDiffAllMenu() *DiffMenu {
 					case "png":
 						fallthrough
 					case "jpeg":
+						// Have to use path here because filepath will confuse getHash
 						ls = append(ls, path.Join(fldr.Name(), v.Name()))
 					}
 				}

@@ -1,9 +1,9 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"syscall"
 
 	"github.com/TheTitanrain/w32"
@@ -22,8 +22,12 @@ func hideConsole() {
 
 func highlightFile(p1, p2 string) {
 	cwd, _ := os.Getwd()
-	cmd := exec.Command("explorer", "/select,", fmt.Sprintf("\"%s%c%s%c%s\"", cwd, os.PathSeparator, p1, os.PathSeparator, p2))
-	cwd = fmt.Sprintf("explorer /select,%s", cmd.Args[2])
+	cmd := exec.Command("explorer", "/select,", filepath.Join(cwd, p1, p2))
+	cwd = "explorer /select," + cmd.Args[2]
 	cmd.SysProcAttr = &syscall.SysProcAttr{CmdLine: cwd}
 	cmd.Run()
+}
+
+func viewFile(p string) {
+	exec.Command("rundll32.exe", "url.dll,FileProtocolHandler", p).Run()
 }
