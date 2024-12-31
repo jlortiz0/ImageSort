@@ -109,6 +109,11 @@ func makeDiffMenu(fldr string) (*DiffMenu, bool) {
 	return menu, false
 }
 
+type hashErr struct {
+	err  error
+	path string
+}
+
 func (menu *DiffMenu) initDiff() int {
 	var ops float32
 	texture, rect := drawMessage("Finding duplicates...\nPreparing...")
@@ -118,14 +123,19 @@ func (menu *DiffMenu) initDiff() int {
 	lastUpdate := time.Now()
 	lastPump := time.Now()
 	diffLs := make([][]byte, len(menu.itemList))
+	failed := make([]hashErr, 0, 10)
+	var err error
 	for k, v := range menu.itemList {
 		if menu.fldr == "." {
-			diffLs[k] = getHash(v)
+			diffLs[k], err = getHash(v)
 			if os.PathSeparator != '/' {
 				menu.itemList[k] = filepath.Join(path.Split(v))
 			}
 		} else {
-			diffLs[k] = getHash(path.Join(menu.fldr, v))
+			diffLs[k], err = getHash(path.Join(menu.fldr, v))
+		}
+		if err != nil {
+			failed = append(failed, hashErr{err, menu.itemList[k]})
 		}
 		ops++
 		if time.Since(lastUpdate) > time.Second/4 {
@@ -141,7 +151,7 @@ func (menu *DiffMenu) initDiff() int {
 			for event != nil {
 				keyEvent, ok := event.(*sdl.KeyboardEvent)
 				if ok && keyEvent.Keysym.Sym == sdl.K_ESCAPE {
-					return LOOP_QUIT
+					return LOOP_EXIT
 				}
 				event = sdl.PollEvent()
 			}
@@ -160,6 +170,32 @@ func (menu *DiffMenu) initDiff() int {
 	menu.itemList = make([]string, len(menu.diffList))
 	texture.Destroy()
 	saveScreen()
+	if len(failed) > 0 {
+		f, err := os.Create("failed.txt")
+		if err != nil {
+			_, quit := displayMessage("While writing failed hashes, recieved:\n" + err.Error())
+			if quit {
+				return LOOP_QUIT
+			}
+			if len(menu.diffList) == 0 {
+				return LOOP_EXIT
+			}
+			return LOOP_CONT
+		}
+		buf := bufio.NewWriter(f)
+		for _, v := range failed {
+			buf.WriteString(v.path)
+			buf.WriteByte('\t')
+			buf.WriteString(v.err.Error())
+			buf.WriteByte('\n')
+		}
+		buf.Flush()
+		f.Close()
+		_, quit := displayMessage("Some files failed to hash.\nA list has been written to failed.txt")
+		if quit {
+			return LOOP_QUIT
+		}
+	}
 	if len(menu.diffList) == 0 {
 		return LOOP_EXIT
 	}
@@ -454,12 +490,12 @@ func saveHashes() error {
 	return nil
 }
 
-func getHash(path string) []byte {
+func getHash(path string) ([]byte, error) {
 	hash, ok := hashes[path]
 	if ok {
 		info, err := os.Stat(path)
 		if err == nil && info.ModTime().Unix() == hash.modTime {
-			return hash.hash
+			return hash.hash, nil
 		}
 	}
 	var err error
@@ -477,25 +513,23 @@ func getHash(path string) []byte {
 		img, err = imagehash.OpenImg(path)
 	}
 	if err != nil {
-		fmt.Printf("Could not open %s: %s\n", path, err.Error())
-		return nil
+		return nil, err
 	}
 	hsh, err := imagehash.DhashHorizontal(img, int(config.HashSize))
 	if err != nil {
-		fmt.Printf("Could not hash %s: %s\n", path, err.Error())
-		return nil
+		return nil, err
 	}
 	info, err := os.Stat(path)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 	hashes[path] = hashEntry{hsh, info.ModTime().Unix()}
-	return hsh
+	return hsh, nil
 }
 
 func compareBits(x, y []byte) bool {
 	if len(x) != len(y) {
-		panic(fmt.Errorf("mismatched hash lengths: hash 1 has length %d while hash 2 has length %d", len(x), len(y)))
+		return false
 	}
 	var c uint16
 	for i := 0; i < len(x); i++ {
