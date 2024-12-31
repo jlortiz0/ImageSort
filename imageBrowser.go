@@ -50,7 +50,7 @@ type ImageMenu struct {
 
 var flingOffsets = []int32{36, 43, 51, 62, 77, 95, 120, 152, 196, 255, 336, 449, 610, 840}
 
-func makeImageMenu(fldr string) *ImageMenu {
+func makeImageMenu(fldr string) (*ImageMenu, bool) {
 	f, err := os.Open(fldr)
 	if err != nil {
 		panic(err)
@@ -91,15 +91,16 @@ func makeImageMenu(fldr string) *ImageMenu {
 	menu.fldr = fldr
 	menu.itemList = ls
 	if len(ls) == 0 {
+		var quit bool
 		if len(entries) == 0 {
-			displayMessage("Folder " + fldr + "\nis empty.")
+			_, quit = displayMessage("Folder " + fldr + "\nis empty.")
 		} else {
-			displayMessage("Folder " + fldr + "\nhas no supported images.")
+			_, quit = displayMessage("Folder " + fldr + "\nhas no supported images.")
 		}
-		return nil
+		return nil, quit
 	}
 	display.SetDrawColor(64, 64, 64, 0)
-	return menu
+	return menu, false
 }
 
 func (menu *ImageMenu) destroy() {
@@ -198,10 +199,14 @@ func (menu *ImageMenu) keyHandler(key sdl.Keycode) int {
 			break
 		}
 		sz := float64(stat.Size()) / 1024
+		var quit bool
 		if sz > 1024 {
-			displayMessage(fmt.Sprintf("File: %s\nScale Height: %d\nScale Width: %d\nStorage: %.1f MiB", menu.itemList[menu.Selected], menu.pos.H, menu.pos.W, sz/1024))
+			_, quit = displayMessage(fmt.Sprintf("File: %s\nScale Height: %d\nScale Width: %d\nStorage: %.1f MiB", menu.itemList[menu.Selected], menu.pos.H, menu.pos.W, sz/1024))
 		} else {
-			displayMessage(fmt.Sprintf("File: %s\nScale Height: %d\nScale Width: %d\nStorage: %.1f KiB", menu.itemList[menu.Selected], menu.pos.H, menu.pos.W, sz))
+			_, quit = displayMessage(fmt.Sprintf("File: %s\nScale Height: %d\nScale Width: %d\nStorage: %.1f KiB", menu.itemList[menu.Selected], menu.pos.H, menu.pos.W, sz))
+		}
+		if quit {
+			return LOOP_QUIT
 		}
 		saveScreen()
 		menu.renderer()
@@ -224,7 +229,7 @@ func (menu *ImageMenu) keyHandler(key sdl.Keycode) int {
 		menu.pos = &sdl.Rect{X: (wW - sx) / 2, Y: (wH - sy) / 2, H: sy, W: sx}
 	case sdl.K_g:
 		str := createNewFolder(strconv.Itoa(menu.Selected + 1))
-		if str == "CANCEL" {
+		if str == "\x00" {
 			return LOOP_QUIT
 		}
 		saveScreen()
@@ -397,7 +402,7 @@ func (menu *ImageMenu) renderer() {
 	if menu.animated {
 		b, _, err := menu.image.Lock(nil)
 		if err == nil {
-			// TODO: Error checking
+			// TODO: Error handling
 			menu.ffmpeg.Read(b)
 			menu.image.Unlock()
 		}
@@ -427,32 +432,39 @@ type TrashMenu struct {
 	ImageMenu
 }
 
-func makeTrashMenu() *TrashMenu {
-	men := makeImageMenu("Trash")
-	if men == nil {
-		return nil
+func makeTrashMenu() (*TrashMenu, bool) {
+	men, quit := makeImageMenu("Trash")
+	if men == nil || quit {
+		return nil, quit
 	}
-	return &TrashMenu{ImageMenu: *men}
+	return &TrashMenu{ImageMenu: *men}, quit
 }
 
 func (men *TrashMenu) keyHandler(key sdl.Keycode) int {
 	if key == sdl.K_c {
 		return LOOP_CONT
 	} else if key == sdl.K_l {
-		if displayMessage("Okay to empty trash?\nZ - Yes X - No") {
+		if b, quit := displayMessage("Okay to empty trash?\nZ - Yes X - No"); b {
 			if men.animated {
 				men.ffmpeg.Destroy()
 				men.ffmpeg = nil
 			}
 			err := os.RemoveAll("Trash")
-			if err != nil {
-				displayMessage(err.Error())
-				return LOOP_CONT
+			if err == nil {
+				os.Mkdir("Trash", 0644)
+				if _, quit := displayMessage("Trash emptied."); quit {
+					return LOOP_QUIT
+				}
+				return LOOP_EXIT
 			}
-			os.Mkdir("Trash", 0644)
-			displayMessage("Trash emptied.")
-			return LOOP_EXIT
+			// TODO: Word wrap this error and any others that are directly displayed to the user
+			if _, quit := displayMessage(err.Error()); quit {
+				return LOOP_QUIT
+			}
+		} else if quit {
+			return LOOP_QUIT
 		}
+		saveScreen()
 		men.renderer()
 		fadeScreen()
 		return LOOP_CONT
@@ -469,11 +481,12 @@ type SortMenu struct {
 	showBar      bool
 }
 
-func makeSortMenu(folders []string) *SortMenu {
-	men := &SortMenu{ImageMenu: makeImageMenu("Sort"), folders: folders, showBar: len(folders) > 0}
-	if men.ImageMenu == nil {
-		return nil
+func makeSortMenu(folders []string) (*SortMenu, bool) {
+	innerMenu, quit := makeImageMenu("Sort")
+	if innerMenu == nil || quit {
+		return nil, quit
 	}
+	men := &SortMenu{ImageMenu: innerMenu, folders: folders, showBar: len(folders) > 0}
 	if men.showBar {
 		men.folderBarPos = make([]int, 1, (len(folders)+4)/5+1)
 		keys := []byte{'1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '='}
@@ -500,7 +513,7 @@ func makeSortMenu(folders []string) *SortMenu {
 			men.folderBarPos = append(men.folderBarPos, len(folders))
 		}
 	}
-	return men
+	return men, false
 }
 
 func (men *SortMenu) imageLoader() int {
