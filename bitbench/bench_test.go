@@ -13,7 +13,7 @@ import (
 
 var hashes []imgsort.Hash
 
-const HashBytes = imgsort.HASH_SIZE * imgsort.HASH_SIZE / 8
+const HashBytes = (imgsort.HASH_SIZE * imgsort.HASH_SIZE) / 8
 
 func loadHashes(b *testing.B) error {
 	b.Helper()
@@ -54,7 +54,7 @@ func loadHashes(b *testing.B) error {
 	return err
 }
 
-func loopHelper(b *testing.B, fn func(imgsort.Hash, imgsort.Hash) bool) {
+func loopHelper(b *testing.B, fn func(*imgsort.Hash, *imgsort.Hash) bool) {
 	err := loadHashes(b)
 	if err != nil {
 		b.Fatalf("hash load error: %s", err.Error())
@@ -63,13 +63,11 @@ func loopHelper(b *testing.B, fn func(imgsort.Hash, imgsort.Hash) bool) {
 	b.ResetTimer()
 	i := 0
 	j := 1
+	var _dontOptimizeMe bool
 	for f := 0; f < b.N; f++ {
-		v := hashes[i]
-		v2 := hashes[j]
-		c := fn(v, v2)
-		if c {
-			b.Log(i, j)
-		}
+		v := &hashes[i]
+		v2 := &hashes[j]
+		_dontOptimizeMe = fn(v, v2)
 		j += 1
 		if j >= len(hashes) {
 			i += 1
@@ -79,10 +77,15 @@ func loopHelper(b *testing.B, fn func(imgsort.Hash, imgsort.Hash) bool) {
 			j = i + 1
 		}
 	}
+	b.Log(_dontOptimizeMe)
 }
 
 func BenchmarkTable(b *testing.B) {
 	loopHelper(b, imgsort.TableDiff)
+}
+
+func BenchmarkTable2(b *testing.B) {
+	loopHelper(b, imgsort.TableDiff2)
 }
 
 func BenchmarkXorAll(b *testing.B) {
