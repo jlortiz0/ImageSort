@@ -1,6 +1,6 @@
 # ImageSort
 
-It's a rapid image sorter and semi-competent viewer. The original version was written in Python over a few weekends. Due to issues with CPU usage, I switched to Golang and SDL 2.
+It's a rapid image mover and semi-competent viewer. The original version was written in Python over a few weekends. Due to issues with CPU usage, I switched to Golang and SDL 2.
 
 ## Building
 
@@ -85,6 +85,7 @@ Similar to image browser, but...
 - Fade Speed: How fast the transition between screen is. Higher is faster.
 - Dupe sensitivity: How many bits of the hash can be different before two images are declared dissimilar.
 - Sample Size: Controls the size of the image hashes used by the DeDuplicator. Changing this will require all images to be rehashed.
+- Dedup Frame: Which video frame should be used by the DeDuplication. Changing this will require all videos to be rehashed.
 
 ## Known Bugs
 
