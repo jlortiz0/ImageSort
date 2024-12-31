@@ -362,9 +362,12 @@ type OptionsMenu struct {
 	ChoiceMenu
 }
 
+var optionsMenuOrder = [6]*uint16{&config.FadeSpeed, &config.HashDiff, &config.HashSize, &config.AnimFrame, &config.SizeSort, &config.ReverseSort}
+var optionsMenuMinMaxDelta = [3][6]uint16{{16, 0, 4, 0, 0, 0}, {80, 0xffff, 32, 30, 1, 1}, {4, 1, 4, 1, 1, 1}}
+
 func doOptionsMenu() int {
 	men := new(OptionsMenu)
-	men.itemList = []string{"Fade Speed: %d", "Dupe Sensitivity: %d", "Sample Size: %d", "Dedup Frame: %d"}
+	men.itemList = []string{"Fade Speed: %d", "Dupe Sensitivity: %d", "Sample Size: %d", "Dedup Frame: %d", "Sort by Size: %t", "Reverse Sort: %t"}
 	configCopy := config
 	action := stdEventLoop(men)
 	men.destroy()
@@ -404,10 +407,18 @@ func doOptionsMenu() int {
 }
 
 func (men *OptionsMenu) renderer() {
-	menuValues := []interface{}{config.FadeSpeed, config.HashDiff, config.HashSize, config.AnimFrame}
+	optionsMenuMinMaxDelta[1][1] = (config.HashSize * config.HashSize) / 2
 	menuList := make([]string, len(men.itemList))
 	for k := 0; k < len(men.itemList); k++ {
-		menuList[k] = fmt.Sprintf(men.itemList[k], menuValues[k])
+		if men.itemList[k][len(men.itemList[k])-2:] == "%t" {
+			b := false
+			if *optionsMenuOrder[k] != 0 {
+				b = true
+			}
+			menuList[k] = fmt.Sprintf(men.itemList[k], b)
+		} else {
+			menuList[k] = fmt.Sprintf(men.itemList[k], *optionsMenuOrder[k])
+		}
 	}
 	menVal := makeMenu(menuList, men.Selected)
 	men.image = menVal.image
@@ -416,45 +427,16 @@ func (men *OptionsMenu) renderer() {
 }
 
 func (men *OptionsMenu) keyHandler(key sdl.Keycode) int {
-	if key == sdl.K_LEFT || key == sdl.K_RIGHT {
-		switch men.Selected {
-		case 0: // FadeSpeed
-			if key == sdl.K_LEFT {
-				if config.FadeSpeed > 16 {
-					config.FadeSpeed -= 4
-				}
-			} else {
-				if config.FadeSpeed < 80 {
-					config.FadeSpeed += 4
-				}
-			}
-		case 1: // HashDiff
-			if key == sdl.K_LEFT {
-				if config.HashDiff != 0 {
-					config.HashDiff--
-				}
-			} else if config.HashDiff < (uint16(config.HashSize)*uint16(config.HashSize))/2 {
-				config.HashDiff++
-			}
-		case 2: // HashSize
-			if key == sdl.K_LEFT {
-				if config.HashSize > 4 {
-					config.HashSize -= 4
-				}
-			} else if config.HashSize < 32 {
-				config.HashSize += 4
-			}
-		case 3: // AnimFrame
-			if key == sdl.K_LEFT {
-				if config.AnimFrame > 0 {
-					config.AnimFrame--
-				}
-			} else if config.AnimFrame < 30 {
-				config.AnimFrame++
-			}
+	if key == sdl.K_LEFT {
+		if *optionsMenuOrder[men.Selected] > optionsMenuMinMaxDelta[0][men.Selected] {
+			*optionsMenuOrder[men.Selected] -= optionsMenuMinMaxDelta[2][men.Selected]
 		}
-		if config.HashDiff > (uint16(config.HashSize)*uint16(config.HashSize))/2 {
-			config.HashDiff = (uint16(config.HashSize) * uint16(config.HashSize)) / 2
+		men.renderer()
+		display.Present()
+		return LOOP_CONT
+	} else if key == sdl.K_RIGHT {
+		if *optionsMenuOrder[men.Selected] < optionsMenuMinMaxDelta[1][men.Selected] {
+			*optionsMenuOrder[men.Selected] += optionsMenuMinMaxDelta[2][men.Selected]
 		}
 		men.renderer()
 		display.Present()

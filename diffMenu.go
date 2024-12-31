@@ -414,7 +414,7 @@ func loadHashes() error {
 	defer f.Close()
 	reader := bufio.NewReader(f)
 	sz, _ := reader.ReadByte()
-	if sz&128 != 0 || sz != config.HashSize {
+	if sz&128 != 0 || sz != byte(config.HashSize) {
 		hashes = make(map[string]hashEntry, 128)
 		return nil
 	}

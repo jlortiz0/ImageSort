@@ -44,10 +44,12 @@ var loading *sdl.Texture
 var fHeight int32
 
 var config struct {
-	FadeSpeed uint8
-	HashDiff  uint16
-	HashSize  byte
-	AnimFrame byte
+	FadeSpeed   uint16
+	HashDiff    uint16
+	HashSize    uint16
+	AnimFrame   uint16
+	SizeSort    uint16
+	ReverseSort uint16
 }
 
 func main() {
@@ -281,15 +283,15 @@ func fadeScreen() {
 	fadeBg.Update(nil, unsafe.Pointer(&buffer[0]), pitch)
 	rect := &sdl.Rect{W: wW, H: wH}
 	fadeFg.SetBlendMode(sdl.BLENDMODE_BLEND)
-	var i uint8 = 255
+	var i byte = 255
 	for i > 0 {
 		fadeFg.SetAlphaMod(i)
 		display.Copy(fadeBg, nil, rect)
 		display.Copy(fadeFg, nil, rect)
 		display.Present()
 		delay()
-		if i > config.FadeSpeed {
-			i -= config.FadeSpeed
+		if i > byte(config.FadeSpeed) {
+			i -= byte(config.FadeSpeed)
 		} else {
 			i = 0
 		}

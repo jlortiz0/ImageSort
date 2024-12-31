@@ -23,6 +23,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -60,6 +61,10 @@ func makeImageMenu(fldr string) (*ImageMenu, bool) {
 		panic(err)
 	}
 	ls := make([]string, 0, len(entries))
+	var srtMap map[string]int64
+	if config.SizeSort != 0 {
+		srtMap = make(map[string]int64, len(entries))
+	}
 	for _, v := range entries {
 		if !v.IsDir() {
 			ind := strings.LastIndexByte(v.Name(), '.')
@@ -83,10 +88,21 @@ func makeImageMenu(fldr string) (*ImageMenu, bool) {
 				fallthrough
 			case "jpeg":
 				ls = append(ls, v.Name())
+				if config.SizeSort != 0 {
+					info, _ := v.Info()
+					srtMap[v.Name()] = info.Size()
+				}
 			}
 		}
 	}
-	sort.Strings(ls)
+	if config.SizeSort != 0 {
+		sort.Slice(ls, func(i, j int) bool { return srtMap[ls[i]] > srtMap[ls[j]] })
+	} else {
+		sort.Strings(ls)
+	}
+	if config.ReverseSort != 0 {
+		slices.Reverse(ls)
+	}
 	menu := new(ImageMenu)
 	menu.fldr = fldr
 	menu.itemList = ls

@@ -43,7 +43,7 @@ In the deduplicator, you view images in sets of two. Press the Q key to switch b
 - C - Send image to Trash folder
 - V - Open image in external application
 - H - Highlight image in folder
-- G - Goto image
+- G - Go to image index
 - Home/End - Go to first/last image
 
 ### Trash Folder
@@ -59,6 +59,7 @@ Similar to the image browser, but...
 
 - X - Nothing
 - Q - Scroll folder bar forward. Will loop at the end.
+- Shift + Q - Scroll folder bar backward.
 - 1-9, -, = - Move to corresponding folder on folder bar
 - I - Hide/show folder bar
 
@@ -90,3 +91,4 @@ Similar to image browser, but...
 ## Known Bugs
 
 - When returning from the info screen in the Sort folder, the folder bar is not visible.
+- Menus do not resize when the window does. On some menus, this can result in broken graphics until the menu is exited and re-entered.
