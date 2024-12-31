@@ -54,7 +54,7 @@ type DiffMenu struct {
 	imageSel int
 }
 
-func makeDiffMenu(fldr string) *DiffMenu {
+func makeDiffMenu(fldr string) (*DiffMenu, bool) {
 	f, err := os.Open(fldr)
 	if err != nil {
 		panic(err)
@@ -94,17 +94,18 @@ func makeDiffMenu(fldr string) *DiffMenu {
 	sort.Strings(ls)
 	menu := new(DiffMenu)
 	if fldr != "." && len(ls) == 0 {
+		var quit bool
 		if len(entries) == 0 {
-			displayMessage("Folder " + fldr + "\nis empty.")
+			_, quit = displayMessage("Folder " + fldr + "\nis empty.")
 		} else {
-			displayMessage("Folder " + fldr + "\nhas no supported images.")
+			_, quit = displayMessage("Folder " + fldr + "\nhas no supported images.")
 		}
-		return menu
+		return nil, quit
 	}
 	menu.itemList = ls
 	menu.fldr = fldr
 	display.SetDrawColor(64, 64, 64, 0)
-	return menu
+	return menu, false
 }
 
 func (menu *DiffMenu) initDiff() int {
@@ -149,7 +150,7 @@ func (menu *DiffMenu) initDiff() int {
 	for i, v := range diffLs {
 		j := i + 1
 		for j < len(diffLs) {
-			if compareBits(v, diffLs[j]) <= config.HashDiff {
+			if compareBits(v, diffLs[j]) {
 				menu.diffList = append(menu.diffList, [2]string{menu.itemList[i], menu.itemList[j]})
 			}
 			j++
@@ -297,8 +298,11 @@ func (menu *DiffMenu) destroy() {
 	menu.image2.Destroy()
 }
 
-func makeDiffAllMenu() *DiffMenu {
-	menu := makeDiffMenu(".")
+func makeDiffAllMenu() (*DiffMenu, bool) {
+	menu, quit := makeDiffMenu(".")
+	if quit {
+		return nil, true
+	}
 	f, err := os.Open(".")
 	if err != nil {
 		panic(err)
@@ -350,12 +354,12 @@ func makeDiffAllMenu() *DiffMenu {
 	}
 	f.Close()
 	if len(ls) == 0 {
-		displayMessage("No supported images.")
-		return nil
+		_, quit = displayMessage("No supported images.")
+		return nil, quit
 	}
 	sort.Strings(ls)
 	menu.itemList = ls
-	return menu
+	return menu, false
 }
 
 func loadHashes() error {
@@ -484,16 +488,16 @@ func getHash(path string) []byte {
 	return hsh
 }
 
-func compareBits(x, y []byte) uint16 {
+func compareBits(x, y []byte) bool {
 	if len(x) != len(y) {
-		return 0xFFFF
+		panic(fmt.Errorf("mismatched hash lengths: hash 1 has length %d while hash 2 has length %d", len(x), len(y)))
 	}
 	var c uint16
 	for i := 0; i < len(x); i++ {
 		c += uint16(bits.OnesCount8(x[i] ^ y[i]))
 		if c > config.HashDiff {
-			break
+			return false
 		}
 	}
-	return c
+	return true
 }

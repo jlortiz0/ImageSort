@@ -84,7 +84,7 @@ func (menu FolderMenu) keyHandler(key sdl.Keycode) int {
 			fadeScreen()
 		case ld - 2:
 			fldrName := createNewFolder("")
-			if fldrName == "CANCEL" {
+			if fldrName == "\x00" {
 				return LOOP_QUIT
 			} else if fldrName != "" {
 				if _, err := os.Stat(fldrName); os.IsNotExist(err) {
@@ -97,7 +97,10 @@ func (menu FolderMenu) keyHandler(key sdl.Keycode) int {
 			fadeScreen()
 		case ld - 3:
 			// Trash
-			imgMenu := makeTrashMenu()
+			imgMenu, quit := makeTrashMenu()
+			if quit {
+				return LOOP_QUIT
+			}
 			if imgMenu != nil {
 				imgMenu.imageLoader()
 				if stdEventLoop(imgMenu) == LOOP_QUIT {
@@ -110,7 +113,10 @@ func (menu FolderMenu) keyHandler(key sdl.Keycode) int {
 			fadeScreen()
 		case ld - 4:
 			// Sort
-			imgMenu := makeSortMenu(menu.itemList[:len(menu.itemList)-4])
+			imgMenu, quit := makeSortMenu(menu.itemList[:len(menu.itemList)-4])
+			if quit {
+				return LOOP_QUIT
+			}
 			if imgMenu != nil {
 				imgMenu.imageLoader()
 				if stdEventLoop(imgMenu) == LOOP_QUIT {
@@ -123,7 +129,10 @@ func (menu FolderMenu) keyHandler(key sdl.Keycode) int {
 			fadeScreen()
 		default:
 			// Other folder
-			imgMenu := makeImageMenu(menu.itemList[menu.Selected])
+			imgMenu, quit := makeImageMenu(menu.itemList[menu.Selected])
+			if quit {
+				return LOOP_QUIT
+			}
 			if imgMenu != nil {
 				imgMenu.imageLoader()
 				if stdEventLoop(imgMenu) == LOOP_QUIT {
@@ -145,10 +154,14 @@ func (menu FolderMenu) keyHandler(key sdl.Keycode) int {
 			n, _ := f.ReadDir(1)
 			f.Close()
 			if len(n) != 0 {
-				displayMessage("Folder " + dName + "\nis not empty.")
-			} else if displayMessage("Okay to delete\nfolder " + dName + "?\nZ - Yes  X - No") {
+				if _, quit := displayMessage("Folder " + dName + "\nis not empty."); quit {
+					return LOOP_QUIT
+				}
+			} else if b, quit := displayMessage("Okay to delete\nfolder " + dName + "?\nZ - Yes  X - No"); b {
 				os.Remove(dName)
 				return LOOP_REDO
+			} else if quit {
+				return LOOP_QUIT
 			}
 			saveScreen()
 			menu.renderer()
@@ -156,12 +169,17 @@ func (menu FolderMenu) keyHandler(key sdl.Keycode) int {
 		}
 	case sdl.K_r:
 		if menu.Selected < len(menu.itemList)-2 {
-			imgMenu := makeDiffMenu(menu.itemList[menu.Selected])
+			imgMenu, quit := makeDiffMenu(menu.itemList[menu.Selected])
+			if quit {
+				return LOOP_QUIT
+			}
 			if imgMenu != nil {
 				saveScreen()
 				result := imgMenu.initDiff()
 				if result == LOOP_EXIT {
-					displayMessage("No duplicates!")
+					if _, quit := displayMessage("No duplicates!"); quit {
+						return LOOP_QUIT
+					}
 				} else if result == LOOP_CONT {
 					imgMenu.imageLoader()
 					if stdEventLoop(imgMenu) == LOOP_QUIT {
@@ -175,12 +193,17 @@ func (menu FolderMenu) keyHandler(key sdl.Keycode) int {
 			fadeScreen()
 		}
 	case sdl.K_u:
-		imgMenu := makeDiffAllMenu()
+		imgMenu, quit := makeDiffAllMenu()
+		if quit {
+			return LOOP_QUIT
+		}
 		if imgMenu != nil {
 			saveScreen()
 			result := imgMenu.initDiff()
 			if result == LOOP_EXIT {
-				displayMessage("No duplicates!")
+				if _, quit := displayMessage("No duplicates!"); quit {
+					return LOOP_QUIT
+				}
 			} else if result == LOOP_CONT {
 				imgMenu.imageLoader()
 				if stdEventLoop(imgMenu) == LOOP_QUIT {
@@ -237,7 +260,7 @@ Outer:
 		for event := sdl.PollEvent(); event != nil; event = sdl.PollEvent() {
 			switch event := event.(type) {
 			case *sdl.QuitEvent:
-				output = "CANCEL"
+				output = "\x00"
 				break Outer
 			case *sdl.TextInputEvent:
 				output += event.GetText()
@@ -255,9 +278,6 @@ Outer:
 					output = ""
 					fallthrough
 				case sdl.K_RETURN:
-					if output == "CANCEL" {
-						output = ""
-					}
 					break Outer
 				}
 			case *sdl.WindowEvent:
@@ -330,14 +350,12 @@ func (msg *Message) keyHandler(key sdl.Keycode) int {
 	return LOOP_CONT
 }
 
-func displayMessage(msg string) bool {
+func displayMessage(msg string) (bool, bool) {
 	menu := new(Message)
 	menu.image, menu.pos = drawMessage(msg)
-	if stdEventLoop(menu) == LOOP_QUIT {
-		sdl.PushEvent(&sdl.QuitEvent{})
-	}
+	quit := stdEventLoop(menu) == LOOP_QUIT
 	menu.image.Destroy()
-	return menu.yes
+	return menu.yes, quit
 }
 
 type OptionsMenu struct {
