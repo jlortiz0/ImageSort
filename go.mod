@@ -1,6 +1,6 @@
 module github.com/jlortiz0/ImageSort
 
-go 1.21
+go 1.21.0
 
 require (
 	github.com/TheTitanrain/w32 v0.0.0-20200114052255-2654d97dbd3d

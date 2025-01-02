@@ -8,6 +8,7 @@ import (
 
 func hideConsole() {}
 
+// TODO: There's probably not a good cross-de way to do this, but if there is, it would be nice to fix this.
 func highlightFile(p1, _ string) {
 	cwd, _ := os.Getwd()
 	// xdg-open can block depending on what program is launched, so wait in a goroutine.

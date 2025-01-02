@@ -122,34 +122,6 @@ func main() {
 		if !ok {
 			return
 		}
-		if _, err2 := os.Stat("Px437_IBM_VGA_9x16.ttf"); err2 == nil {
-			font.Close()
-			font, _ = ttf.OpenFont("Px437_IBM_VGA_9x16.ttf", 16)
-			fHeight = 20
-		}
-		display.SetDrawColor(0, 0, 170, 0)
-		display.Clear()
-		wW, wH := window.GetSize()
-		txtSurf, _ := font.RenderUTF8Shaded(" ImageSort ", sdl.Color{B: 170}, sdl.Color{R: 171, G: 169, B: 168})
-		pos := sdl.Rect{H: txtSurf.H, W: txtSurf.W, X: wW/2 - txtSurf.W/2, Y: wH / 4}
-		txtText, _ := display.CreateTextureFromSurface(txtSurf)
-		txtSurf.Free()
-		display.Copy(txtText, nil, &pos)
-		txtSurf, _ = font.RenderUTF8Shaded("An error has occurred. Press any key to quit.", sdl.Color{R: 171, G: 169, B: 168}, sdl.Color{B: 170})
-		pos = sdl.Rect{H: txtSurf.H, W: txtSurf.W, X: wW / 8, Y: wH/4 + 2*fHeight}
-		txtText, _ = display.CreateTextureFromSurface(txtSurf)
-		txtSurf.Free()
-		display.Copy(txtText, nil, &pos)
-		txtSurf, _ = font.RenderUTF8Shaded("This information will be saved in crash.log. Attach this file to any bug report.", sdl.Color{R: 171, G: 169, B: 168}, sdl.Color{B: 170})
-		pos = sdl.Rect{H: txtSurf.H, W: txtSurf.W, X: wW / 8, Y: wH/4 + 2*fHeight}
-		txtText, _ = display.CreateTextureFromSurface(txtSurf)
-		txtSurf.Free()
-		display.Copy(txtText, nil, &pos)
-		txtSurf, _ = font.RenderUTF8Shaded(err.Error(), sdl.Color{R: 171, G: 169, B: 168}, sdl.Color{B: 170})
-		pos = sdl.Rect{H: txtSurf.H, W: txtSurf.W, X: wW / 8, Y: wH/4 + 5*fHeight}
-		txtText, _ = display.CreateTextureFromSurface(txtSurf)
-		txtSurf.Free()
-		display.Copy(txtText, nil, &pos)
 		stack := string(debug.Stack())
 		for i := 0; i < 5; i++ {
 			stack = stack[strings.IndexByte(stack, '\n')+1:]
@@ -159,7 +131,36 @@ func main() {
 			f.Write([]byte(err.Error()))
 			f.Write([]byte("\n"))
 			f.Write([]byte(stack))
+			f.Close()
 		}
+
+		display.SetDrawColor(0, 0, 170, 0)
+		display.Clear()
+
+		txtSurf, _ = font.RenderUTF8Shaded("An error has occurred. Press any key to quit.", sdl.Color{R: 171, G: 169, B: 168}, sdl.Color{B: 170})
+		pos := sdl.Rect{H: txtSurf.H, W: txtSurf.W, X: 5, Y: 5 + 2*fHeight}
+		txtText, _ := display.CreateTextureFromSurface(txtSurf)
+		txtSurf.Free()
+		display.Copy(txtText, nil, &pos)
+		txtText.Destroy()
+		txtSurf, _ := font.RenderUTF8Shaded(" ImageSort ", sdl.Color{B: 170}, sdl.Color{R: 171, G: 169, B: 168})
+		pos = sdl.Rect{H: txtSurf.H, W: txtSurf.W, X: (pos.W - txtSurf.W) / 2, Y: 5}
+		txtText, _ = display.CreateTextureFromSurface(txtSurf)
+		txtSurf.Free()
+		display.Copy(txtText, nil, &pos)
+		txtText.Destroy()
+		txtSurf, _ = font.RenderUTF8Shaded("This information will be saved in crash.log.", sdl.Color{R: 171, G: 169, B: 168}, sdl.Color{B: 170})
+		pos = sdl.Rect{H: txtSurf.H, W: txtSurf.W, X: 5, Y: 5 + 3*fHeight}
+		txtText, _ = display.CreateTextureFromSurface(txtSurf)
+		txtSurf.Free()
+		display.Copy(txtText, nil, &pos)
+		txtText.Destroy()
+		txtSurf, _ = font.RenderUTF8Shaded(err.Error(), sdl.Color{R: 171, G: 169, B: 168}, sdl.Color{B: 170})
+		pos = sdl.Rect{H: txtSurf.H, W: txtSurf.W, X: 5, Y: 5 + 5*fHeight}
+		txtText, _ = display.CreateTextureFromSurface(txtSurf)
+		txtSurf.Free()
+		display.Copy(txtText, nil, &pos)
+		txtText.Destroy()
 		i := int32(6)
 		x := strings.IndexByte(stack, '\n')
 		for x != -1 {
@@ -168,25 +169,28 @@ func main() {
 				x += 3
 			}
 			txtSurf, _ = font.RenderUTF8Solid(stack[:x], sdl.Color{R: 171, G: 169, B: 168})
-			pos = sdl.Rect{H: txtSurf.H, W: txtSurf.W, X: wW / 8, Y: wH/4 + i*fHeight}
+			pos = sdl.Rect{H: txtSurf.H, W: txtSurf.W, X: 5, Y: 5 + i*fHeight}
 			txtText, _ = display.CreateTextureFromSurface(txtSurf)
 			txtSurf.Free()
 			display.Copy(txtText, nil, &pos)
+			txtText.Destroy()
 			stack = stack[x+1:]
 			i++
 			x = strings.IndexByte(stack, '\n')
 		}
 		if err2 != nil {
-			txtSurf, _ = font.RenderUTF8Shaded("Bugger me! Encountered an error generating this screen:", sdl.Color{R: 171, G: 169, B: 168}, sdl.Color{B: 170})
-			pos = sdl.Rect{H: txtSurf.H, W: txtSurf.W, X: wW / 8, Y: wH/4 + i*fHeight}
+			txtSurf, _ = font.RenderUTF8Shaded("While writing to crash.log, encountered an error:", sdl.Color{R: 171, G: 169, B: 168}, sdl.Color{B: 170})
+			pos = sdl.Rect{H: txtSurf.H, W: txtSurf.W, X: 5, Y: 5 + (i+1)*fHeight}
 			txtText, _ = display.CreateTextureFromSurface(txtSurf)
 			txtSurf.Free()
 			display.Copy(txtText, nil, &pos)
+			txtText.Destroy()
 			txtSurf, _ = font.RenderUTF8Shaded(err2.Error(), sdl.Color{R: 171, G: 169, B: 168}, sdl.Color{B: 170})
-			pos = sdl.Rect{H: txtSurf.H, W: txtSurf.W, X: wW / 8, Y: wH/4 + (i+1)*fHeight}
+			pos = sdl.Rect{H: txtSurf.H, W: txtSurf.W, X: 5, Y: 5 + (i+2)*fHeight}
 			txtText, _ = display.CreateTextureFromSurface(txtSurf)
 			txtSurf.Free()
 			display.Copy(txtText, nil, &pos)
+			txtText.Destroy()
 		}
 		display.Present()
 		for {
@@ -252,8 +256,8 @@ func initWindow() {
 		ico.Close()
 	}
 	pxFmt, _ := window.GetPixelFormat()
-	fadeFg, _ = display.CreateTexture(pxFmt, sdl.TEXTUREACCESS_STATIC, 1024, 768)
-	fadeBg, _ = display.CreateTexture(pxFmt, sdl.TEXTUREACCESS_STATIC, 1024, 768)
+	fadeFg, _ = display.CreateTexture(pxFmt, sdl.TEXTUREACCESS_STREAMING, 1024, 768)
+	fadeBg, _ = display.CreateTexture(pxFmt, sdl.TEXTUREACCESS_STREAMING, 1024, 768)
 }
 
 var fadeFg *sdl.Texture
@@ -261,26 +265,29 @@ var fadeBg *sdl.Texture
 
 func saveScreen() {
 	pxFmt, _ := window.GetPixelFormat()
-	wW, wH := window.GetSize()
-	pitch := sdl.BytesPerPixel(pxFmt) * int(wW)
-	buffer := make([]byte, pitch*int(wH))
-	err := display.ReadPixels(nil, pxFmt, unsafe.Pointer(&buffer[0]), pitch)
+	buffer, pitch, err := fadeFg.Lock(nil)
 	if err != nil {
 		panic(err)
 	}
-	fadeFg.Update(nil, unsafe.Pointer(&buffer[0]), pitch)
+	err = display.ReadPixels(nil, pxFmt, unsafe.Pointer(&buffer[0]), pitch)
+	if err != nil {
+		panic(err)
+	}
+	fadeFg.Unlock()
 }
 
 func fadeScreen() {
 	pxFmt, _ := window.GetPixelFormat()
-	wW, wH := window.GetSize()
-	pitch := sdl.BytesPerPixel(pxFmt) * int(wW)
-	buffer := make([]byte, pitch*int(wH))
-	err := display.ReadPixels(nil, pxFmt, unsafe.Pointer(&buffer[0]), pitch)
+	buffer, pitch, err := fadeBg.Lock(nil)
 	if err != nil {
 		panic(err)
 	}
-	fadeBg.Update(nil, unsafe.Pointer(&buffer[0]), pitch)
+	err = display.ReadPixels(nil, pxFmt, unsafe.Pointer(&buffer[0]), pitch)
+	if err != nil {
+		panic(err)
+	}
+	fadeBg.Unlock()
+	wW, wH := window.GetSize()
 	rect := &sdl.Rect{W: wW, H: wH}
 	fadeFg.SetBlendMode(sdl.BLENDMODE_BLEND)
 	var i byte = 255
@@ -437,4 +444,37 @@ func (menu *ChoiceMenu) renderer() {
 
 func (menu *ChoiceMenu) destroy() {
 	menu.image.Destroy()
+}
+
+const WRAP_CHARS = 30
+const WRAP_TOLERANCE = 5
+
+func wordWrapper(s string, prefix []string) string {
+	s2 := new(strings.Builder)
+	if len(prefix) > 0 {
+		for _, x := range prefix {
+			s2.WriteString(x)
+		}
+		s2.WriteByte('\n')
+	}
+	for len(s) > WRAP_CHARS+WRAP_TOLERANCE {
+		ind := strings.IndexByte(s, ':')
+		if ind != -1 && ind < WRAP_CHARS {
+			s2.WriteString(s[:ind+1])
+			s = s[ind+1:]
+			continue
+		}
+		ind = strings.IndexByte(s[WRAP_CHARS-WRAP_TOLERANCE:WRAP_CHARS+WRAP_TOLERANCE], ' ')
+		if ind != -1 {
+			s2.WriteString(s[:WRAP_CHARS-WRAP_TOLERANCE+ind])
+			s2.WriteByte('\n')
+			s = s[WRAP_CHARS-WRAP_TOLERANCE+ind+1:]
+		} else {
+			s2.WriteString(s[:WRAP_CHARS])
+			s2.WriteByte('\n')
+			s = s[WRAP_CHARS:]
+		}
+	}
+	s2.WriteString(s)
+	return s2.String()
 }

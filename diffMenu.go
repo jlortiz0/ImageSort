@@ -173,7 +173,7 @@ func (menu *DiffMenu) initDiff() int {
 	if len(failed) > 0 {
 		f, err := os.Create("failed.txt")
 		if err != nil {
-			_, quit := displayMessage("While writing failed hashes, recieved:\n" + err.Error())
+			_, quit := displayMessage(wordWrapper(err.Error(), []string{"While writing failed hashes, recieved:"}))
 			if quit {
 				return LOOP_QUIT
 			}

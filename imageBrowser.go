@@ -303,7 +303,7 @@ Error:
 			return menu.imageLoader()
 		}
 		menu.animated = false
-		menu.image, menu.pos = drawMessage("Error loading " + menu.itemList[menu.Selected] + ":\n" + err.Error())
+		menu.image, menu.pos = drawMessage(wordWrapper(err.Error(), []string{"Error loading ", menu.itemList[menu.Selected], ""}))
 		return LOOP_CONT
 	}
 	ind := strings.LastIndexByte(menu.itemList[menu.Selected], '.')
@@ -474,7 +474,7 @@ func (men *TrashMenu) keyHandler(key sdl.Keycode) int {
 				return LOOP_EXIT
 			}
 			// TODO: Word wrap this error and any others that are directly displayed to the user
-			if _, quit := displayMessage(err.Error()); quit {
+			if _, quit := displayMessage(wordWrapper(err.Error(), nil)); quit {
 				return LOOP_QUIT
 			}
 		} else if quit {
