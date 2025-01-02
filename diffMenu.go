@@ -115,6 +115,7 @@ type hashErr struct {
 }
 
 func (menu *DiffMenu) initDiff() int {
+	saveScreen()
 	var ops float32
 	texture, rect := drawMessage("Finding duplicates...\nPreparing...")
 	display.Clear()
@@ -169,7 +170,6 @@ func (menu *DiffMenu) initDiff() int {
 	}
 	menu.itemList = make([]string, len(menu.diffList))
 	texture.Destroy()
-	saveScreen()
 	if len(failed) > 0 {
 		f, err := os.Create("failed.txt")
 		if err != nil {

@@ -174,7 +174,6 @@ func (menu FolderMenu) keyHandler(key sdl.Keycode) int {
 				return LOOP_QUIT
 			}
 			if imgMenu != nil {
-				saveScreen()
 				result := imgMenu.initDiff()
 				if result == LOOP_EXIT {
 					if _, quit := displayMessage("No duplicates!"); quit {
@@ -198,7 +197,6 @@ func (menu FolderMenu) keyHandler(key sdl.Keycode) int {
 			return LOOP_QUIT
 		}
 		if imgMenu != nil {
-			saveScreen()
 			result := imgMenu.initDiff()
 			if result == LOOP_EXIT {
 				if _, quit := displayMessage("No duplicates!"); quit {

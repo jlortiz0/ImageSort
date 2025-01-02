@@ -275,7 +275,10 @@ func (menu *ImageMenu) imageLoader() int {
 		return LOOP_EXIT
 	}
 	_, _, sx, sy, _ := loading.Query()
+	// On some systems, just trying to blit loading will cause a black screen or flash a previous frame
+	// Need to copy fadeFg under it
 	saveScreen()
+	display.SetRenderTarget(nil)
 	wW, wH := window.GetSize()
 	display.Copy(fadeFg, nil, &sdl.Rect{W: wW, H: wH})
 	display.Copy(loading, nil, &sdl.Rect{W: sx, H: sy, X: wW - sx, Y: wH - sy})
@@ -342,7 +345,6 @@ Error:
 		goto Error
 	}
 	menu.image, _ = display.CreateTextureFromSurface(rawImg)
-	// var sx, sy int32
 	if rawImg.H*wW >= rawImg.W*wH {
 		sy = wH
 		sx = wH * rawImg.W / rawImg.H

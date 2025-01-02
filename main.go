@@ -257,7 +257,7 @@ func initWindow() {
 	}
 	pxFmt, _ := window.GetPixelFormat()
 	fadeFg, _ = display.CreateTexture(pxFmt, sdl.TEXTUREACCESS_STREAMING, 1024, 768)
-	fadeBg, _ = display.CreateTexture(pxFmt, sdl.TEXTUREACCESS_STREAMING, 1024, 768)
+	fadeBg, _ = display.CreateTexture(pxFmt, sdl.TEXTUREACCESS_TARGET, 1024, 768)
 }
 
 var fadeFg *sdl.Texture
@@ -274,19 +274,11 @@ func saveScreen() {
 		panic(err)
 	}
 	fadeFg.Unlock()
+	display.SetRenderTarget(fadeBg)
 }
 
 func fadeScreen() {
-	pxFmt, _ := window.GetPixelFormat()
-	buffer, pitch, err := fadeBg.Lock(nil)
-	if err != nil {
-		panic(err)
-	}
-	err = display.ReadPixels(nil, pxFmt, unsafe.Pointer(&buffer[0]), pitch)
-	if err != nil {
-		panic(err)
-	}
-	fadeBg.Unlock()
+	display.SetRenderTarget(nil)
 	wW, wH := window.GetSize()
 	rect := &sdl.Rect{W: wW, H: wH}
 	fadeFg.SetBlendMode(sdl.BLENDMODE_BLEND)
