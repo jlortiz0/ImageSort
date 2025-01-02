@@ -28,7 +28,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"sort"
 	"strings"
 	"time"
 
@@ -56,11 +55,7 @@ type DiffMenu struct {
 }
 
 func makeDiffMenu(fldr string) (*DiffMenu, bool) {
-	f, err := os.Open(fldr)
-	if err != nil {
-		panic(err)
-	}
-	entries, err := f.ReadDir(0)
+	entries, err := os.ReadDir(fldr)
 	if err != nil {
 		panic(err)
 	}
@@ -91,8 +86,6 @@ func makeDiffMenu(fldr string) (*DiffMenu, bool) {
 			}
 		}
 	}
-	f.Close()
-	sort.Strings(ls)
 	menu := new(DiffMenu)
 	if fldr != "." && len(ls) == 0 {
 		var quit bool
@@ -344,22 +337,14 @@ func makeDiffAllMenu() (*DiffMenu, bool) {
 	if quit {
 		return nil, true
 	}
-	f, err := os.Open(".")
-	if err != nil {
-		panic(err)
-	}
-	entries, err := f.ReadDir(0)
+	entries, err := os.ReadDir(".")
 	if err != nil {
 		panic(err)
 	}
 	ls := make([]string, 0, len(entries)<<7)
 	for _, fldr := range entries {
 		if fldr.IsDir() && fldr.Name() != "Trash" && fldr.Name()[0] != '.' && fldr.Name()[0] != '$' {
-			f, err := os.Open(fldr.Name())
-			if err != nil {
-				panic(err)
-			}
-			entries, err := f.ReadDir(0)
+			entries, err := os.ReadDir(fldr.Name())
 			if err != nil {
 				panic(err)
 			}
@@ -390,15 +375,12 @@ func makeDiffAllMenu() (*DiffMenu, bool) {
 					}
 				}
 			}
-			f.Close()
 		}
 	}
-	f.Close()
 	if len(ls) == 0 {
 		_, quit = displayMessage("No supported images.")
 		return nil, quit
 	}
-	sort.Strings(ls)
 	menu.itemList = ls
 	return menu, false
 }

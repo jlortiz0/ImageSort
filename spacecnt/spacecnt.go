@@ -63,8 +63,7 @@ func main() {
 		}
 		folders[fldr] += size
 	}
-	if err == io.EOF {
-	} else if err != nil {
+	if err != io.EOF {
 		panic(err)
 	}
 	f.Close()

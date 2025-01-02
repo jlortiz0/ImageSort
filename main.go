@@ -57,23 +57,17 @@ func main() {
 	if _, err := os.Stat("jlortiz_TEST"); err == nil {
 		os.Chdir("jlortiz_TEST")
 	}
-	f, err := os.Open("ImgSort.cfg")
+	data, err := os.ReadFile("ImgSort.cfg")
 	if err != nil {
 		config.HashDiff = 12
 		config.HashSize = 8
 		config.FadeSpeed = 56
 	} else {
-		data := make([]byte, 512)
-		n, err := f.Read(data)
-		if err != nil {
-			panic(err)
-		}
-		err = json.Unmarshal(data[:n], &config)
+		err = json.Unmarshal(data, &config)
 		if err != nil {
 			panic(err)
 		}
 	}
-	f.Close()
 	err = loadHashes()
 	if err != nil {
 		panic(err)

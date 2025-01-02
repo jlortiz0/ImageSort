@@ -22,7 +22,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"sort"
 	"strings"
 
 	"github.com/veandco/go-sdl2/sdl"
@@ -35,15 +34,10 @@ type FolderMenu struct {
 func beginFldrMenu() {
 	sel := 0
 FolderRegen:
-	f, err := os.Open(".")
+	fList, err := os.ReadDir(".")
 	if err != nil {
 		panic(err)
 	}
-	fList, err := f.ReadDir(0)
-	if err != nil {
-		panic(err)
-	}
-	f.Close()
 	dList := make([]string, 0, len(fList))
 	for _, v := range fList {
 		if v.IsDir() {
@@ -53,7 +47,6 @@ FolderRegen:
 			}
 		}
 	}
-	sort.Strings(dList)
 	if _, err = os.Stat("Sort"); os.IsNotExist(err) {
 		os.Mkdir("Sort", 0700)
 	}
@@ -357,16 +350,14 @@ func doOptionsMenu() int {
 	if action == LOOP_QUIT {
 		return action
 	}
-	f, err := os.OpenFile("ImgSort.cfg", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
-	if err != nil {
-		panic(err)
-	}
 	b, err := json.Marshal(&config)
 	if err != nil {
 		panic(err)
 	}
-	f.Write(b)
-	f.Close()
+	err = os.WriteFile("ImgSort.cfg", b, 0644)
+	if err != nil {
+		panic(err)
+	}
 	if configCopy.HashSize != config.HashSize {
 		for k := range hashes {
 			delete(hashes, k)

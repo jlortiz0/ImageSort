@@ -78,7 +78,8 @@ Similar to image browser, but...
 ### Options Menu
 
 - Up/Down Arrow - Change selection
-- Left/Right Arrow - Modify value
+- Right Arrow - Increase option/set to true
+- Left Arrow - Decrease option/set to false
 - ESC - Back to folder menu
 
 ## Options explanation
@@ -87,6 +88,8 @@ Similar to image browser, but...
 - Dupe sensitivity: How many bits of the hash can be different before two images are declared dissimilar.
 - Sample Size: Controls the size of the image hashes used by the DeDuplicator. Changing this will require all images to be rehashed.
 - Dedup Frame: Which video frame should be used by the DeDuplication. Changing this will require all videos to be rehashed.
+- Sort by Size: Sort by image size decreasing instead of by name increasing. Does not affect the DeDuplicator.
+- Reverse Sort: Reverses sorting in image browser. Does not affect the DeDuplicator.
 
 ## Known Bugs
 

@@ -52,11 +52,21 @@ type ImageMenu struct {
 var flingOffsets = []int32{36, 43, 51, 62, 77, 95, 120, 152, 196, 255, 336, 449, 610, 840}
 
 func makeImageMenu(fldr string) (*ImageMenu, bool) {
-	f, err := os.Open(fldr)
-	if err != nil {
-		panic(err)
+	var entries []os.DirEntry
+	var err error
+	if config.SizeSort == 0 {
+		entries, err = os.ReadDir(fldr)
+	} else {
+		// Avoid sorting by name if we are going to sort by size anyway.
+		// I love pointless microoptimizations!
+		var f *os.File
+		f, err = os.Open(fldr)
+		if err != nil {
+			panic(err)
+		}
+		entries, err = f.ReadDir(0)
+		f.Close()
 	}
-	entries, err := f.ReadDir(0)
 	if err != nil {
 		panic(err)
 	}
@@ -97,8 +107,6 @@ func makeImageMenu(fldr string) (*ImageMenu, bool) {
 	}
 	if config.SizeSort != 0 {
 		sort.Slice(ls, func(i, j int) bool { return srtMap[ls[i]] > srtMap[ls[j]] })
-	} else {
-		sort.Strings(ls)
 	}
 	if config.ReverseSort != 0 {
 		slices.Reverse(ls)
