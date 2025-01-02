@@ -221,83 +221,68 @@ func (menu FolderMenu) keyHandler(key sdl.Keycode) int {
 	return LOOP_CONT
 }
 
-func createNewFolder(output string) string {
+type TextInputMessage struct {
+	Message
+	output string
+}
+
+func (tim *TextInputMessage) redraw() {
+	pxFmt, _ := window.GetPixelFormat()
 	wW, wH := window.GetSize()
-	rerender := func() {
-		var txtSurf *sdl.Surface
-		if output == "" {
-			txtSurf, _ = sdl.CreateRGBSurfaceWithFormat(0, 0, int32(font.Height()), 0, 0)
-		} else {
-			txtSurf, _ = font.RenderUTF8Shaded(output, COLOR_BLACK, COLOR_WHITE)
-		}
-		rect := txtSurf.ClipRect
-		rect.H += 10
-		rect.W += 20
-		rect.X = (wW - txtSurf.W - 20) / 2
-		rect.Y = (wH - txtSurf.H - 10) / 2
-		display.SetDrawColor(64, 64, 64, 0)
-		display.Clear()
-		display.SetDrawColor(255, 255, 255, 0)
-		display.FillRect(&rect)
-		if output != "" {
-			rect.X += 10
-			rect.Y += 5
-			texture, _ := display.CreateTextureFromSurface(txtSurf)
-			display.Copy(texture, nil, &sdl.Rect{X: rect.X, Y: rect.Y, H: txtSurf.H, W: txtSurf.W})
-			texture.Destroy()
-		}
-		txtSurf.Free()
+	var w int
+	if tim.output != "" {
+		w, _, _ = font.SizeUTF8(tim.output)
 	}
+	surf, err := sdl.CreateRGBSurfaceWithFormat(0, int32(w)+20, fHeight, 24, pxFmt)
+	if err != nil {
+		panic(err)
+	}
+	surf.FillRect(nil, 0xFFFFFF)
+	if tim.output != "" {
+		drawText(tim.output, surf, 10, 5)
+	}
+	tim.image, _ = display.CreateTextureFromSurface(surf)
+	tim.pos = &sdl.Rect{X: (wW - surf.W) / 2, Y: (wH - surf.H) / 2, H: surf.H, W: surf.W}
+	surf.Free()
+}
+
+func (tim *TextInputMessage) textInput(event *sdl.TextInputEvent) {
+	if event == nil {
+		tim.output = "\x00"
+		return
+	}
+	tim.output += event.GetText()
+	tim.redraw()
+}
+
+func (tim *TextInputMessage) keyHandler(key sdl.Keycode) int {
+	switch key {
+	case sdl.K_BACKSPACE:
+		if len(tim.output) > 0 {
+			tim.output = tim.output[:len(tim.output)-1]
+			tim.redraw()
+		}
+	case sdl.K_ESCAPE:
+		tim.output = ""
+		fallthrough
+	case sdl.K_RETURN:
+		return LOOP_EXIT
+	}
+	return LOOP_CONT
+}
+
+func createNewFolder(output string) string {
+	tim := new(TextInputMessage)
+	tim.output = output
+	tim.redraw()
 	sdl.StartTextInput()
-	saveScreen()
-	rerender()
-	fadeScreen()
-Outer:
-	for {
-		delay()
-		for event := sdl.PollEvent(); event != nil; event = sdl.PollEvent() {
-			switch event := event.(type) {
-			case *sdl.QuitEvent:
-				output = "\x00"
-				break Outer
-			case *sdl.TextInputEvent:
-				output += event.GetText()
-				rerender()
-				display.Present()
-			case *sdl.KeyboardEvent:
-				switch event.Keysym.Sym {
-				case sdl.K_BACKSPACE:
-					if len(output) > 0 {
-						output = output[:len(output)-1]
-						rerender()
-						display.Present()
-					}
-				case sdl.K_ESCAPE:
-					output = ""
-					fallthrough
-				case sdl.K_RETURN:
-					break Outer
-				}
-			case *sdl.WindowEvent:
-				if event.Event == sdl.WINDOWEVENT_SIZE_CHANGED {
-					pxFmt, _ := window.GetPixelFormat()
-					fadeBg.Destroy()
-					fadeFg.Destroy()
-					fadeFg, _ = display.CreateTexture(pxFmt, sdl.TEXTUREACCESS_TARGET, event.Data1, event.Data2)
-					fadeBg, _ = display.CreateTexture(pxFmt, sdl.TEXTUREACCESS_TARGET, event.Data1, event.Data2)
-					rerender()
-					display.Present()
-				}
-			}
-		}
-	}
+	stdEventLoop(tim)
 	sdl.StopTextInput()
-	return output
+	return tim.output
 }
 
 func drawMessage(msg string) (*sdl.Texture, *sdl.Rect) {
 	msgData := strings.Split(msg, "\n")
-	fHeight := int32(font.Height()) + 10
 	var longest string
 	for _, v := range msgData {
 		if len(v) > len(longest) {

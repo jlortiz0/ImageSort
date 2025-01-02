@@ -247,15 +247,15 @@ func (menu *ImageMenu) keyHandler(key sdl.Keycode) int {
 		str := createNewFolder(strconv.Itoa(menu.Selected + 1))
 		if str == "\x00" {
 			return LOOP_QUIT
-		}
-		saveScreen()
-		if str != "" {
+		} else if str != "" {
 			i, err := strconv.Atoi(str)
-			if err == nil && i < len(menu.itemList) && i > 0 {
+			if err == nil && i < len(menu.itemList)+1 && i > 0 {
 				menu.Selected = i - 1
 				menu.imageLoader()
 			}
 		}
+		// imageLoader will overwrite saveScreen if we call it before
+		saveScreen()
 		display.SetDrawColor(64, 64, 64, 0)
 		menu.renderer()
 		fadeScreen()

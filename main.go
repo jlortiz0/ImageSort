@@ -42,6 +42,7 @@ var font *ttf.Font
 var loading *sdl.Texture
 
 var fHeight int32
+var fontName string
 
 var config struct {
 	FadeSpeed   uint16
@@ -77,6 +78,8 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	sdl.SetHint(sdl.HINT_RENDER_SCALE_QUALITY, "best")
+	sdl.SetHint(sdl.HINT_VIDEO_ALLOW_SCREENSAVER, "1")
 	err = sdl.Init(sdl.INIT_TIMER | sdl.INIT_VIDEO)
 	if err != nil {
 		panic(err)
@@ -84,15 +87,12 @@ func main() {
 	defer sdl.Quit()
 	sdl.EventState(sdl.MOUSEMOTION, sdl.DISABLE)
 	sdl.EventState(sdl.KEYUP, sdl.DISABLE)
-	sdl.SetHint(sdl.HINT_RENDER_SCALE_QUALITY, "best")
-	sdl.SetHint(sdl.HINT_VIDEO_ALLOW_SCREENSAVER, "1")
 
 	initWindow()
 	defer window.Destroy()
 	defer display.Destroy()
 	hideConsole()
 
-	var fontName string
 	for _, v := range sysfont.NewFinder(nil).List() {
 		if v.Name == "Times New Roman" {
 			fontName = v.Filename
@@ -105,12 +105,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	font, err = ttf.OpenFont(fontName, 24)
-	if err != nil {
-		panic(err)
-	}
-	fHeight = int32(font.Height()) + 10
-	defer font.Close()
+	initFont()
 
 	txtSurf, err := font.RenderUTF8Shaded("Loading...", COLOR_BLACK, COLOR_WHITE)
 	if err == nil {
@@ -118,6 +113,7 @@ func main() {
 	}
 	defer func() {
 		tmp := recover()
+		defer font.Close()
 		err, ok := tmp.(error)
 		if !ok {
 			return
@@ -260,6 +256,17 @@ func initWindow() {
 	fadeBg, _ = display.CreateTexture(pxFmt, sdl.TEXTUREACCESS_TARGET, 1024, 768)
 }
 
+func initFont() {
+	var err error
+	dsp, _ := window.GetDisplayIndex()
+	dpi, _, _, _ := sdl.GetDisplayDPI(dsp)
+	font, err = ttf.OpenFont(fontName, int(dpi/4))
+	if err != nil {
+		panic(err)
+	}
+	fHeight = int32(font.Height()) + 10
+}
+
 var fadeFg *sdl.Texture
 var fadeBg *sdl.Texture
 
@@ -319,6 +326,7 @@ func stdEventLoop(men Menu) int {
 		for event := sdl.PollEvent(); event != nil; event = sdl.PollEvent() {
 			switch event := event.(type) {
 			case *sdl.QuitEvent:
+				men.textInput(nil)
 				return LOOP_QUIT
 			case *sdl.KeyboardEvent:
 				key := event.Keysym.Sym
@@ -329,13 +337,16 @@ func stdEventLoop(men Menu) int {
 				if kResp != LOOP_CONT {
 					return kResp
 				}
+			case *sdl.TextInputEvent:
+				men.textInput(event)
 			case *sdl.WindowEvent:
 				if event.Event == sdl.WINDOWEVENT_SIZE_CHANGED {
 					pxFmt, _ := window.GetPixelFormat()
 					fadeBg.Destroy()
 					fadeFg.Destroy()
-					fadeFg, _ = display.CreateTexture(pxFmt, sdl.TEXTUREACCESS_TARGET, event.Data1, event.Data2)
+					fadeFg, _ = display.CreateTexture(pxFmt, sdl.TEXTUREACCESS_STREAMING, event.Data1, event.Data2)
 					fadeBg, _ = display.CreateTexture(pxFmt, sdl.TEXTUREACCESS_TARGET, event.Data1, event.Data2)
+					initFont()
 					men.renderer()
 					display.Present()
 				}
@@ -350,6 +361,7 @@ type Menu interface {
 	renderer()
 	destroy()
 	keyHandler(sdl.Keycode) int
+	textInput(*sdl.TextInputEvent)
 }
 
 type ChoiceMenu struct {
@@ -437,6 +449,8 @@ func (menu *ChoiceMenu) renderer() {
 func (menu *ChoiceMenu) destroy() {
 	menu.image.Destroy()
 }
+
+func (*ChoiceMenu) textInput(_ *sdl.TextInputEvent) {}
 
 const WRAP_CHARS = 30
 const WRAP_TOLERANCE = 5
