@@ -54,7 +54,9 @@ var config struct {
 }
 
 func main() {
-	if _, err := os.Stat("jlortiz_TEST"); err == nil {
+	if len(os.Args) > 1 {
+		os.Chdir(strings.Join(os.Args[1:], " "))
+	} else if _, err := os.Stat("jlortiz_TEST"); err == nil {
 		os.Chdir("jlortiz_TEST")
 	}
 	data, err := os.ReadFile("ImgSort.cfg")

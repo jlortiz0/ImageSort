@@ -189,7 +189,7 @@ func moveFile(menu ImageBrowser, from, target string) int {
 	if target != "Trash" {
 		hashes[path.Join(target, newName)] = hashes[from]
 	}
-	delete(hashes, from)
+	delete(hashes, filepath.ToSlash(from))
 	ret := menu.imageLoader()
 	menu.renderer()
 	display.Present()
