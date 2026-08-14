@@ -1,8 +1,5 @@
 jlortiz_TEST/*
-*.exe
-*.exe~
-ImageSort.code-workspace
+*.exe*
 **/imgSort.cache
 .vscode/**
-__pycache__
 *.prof

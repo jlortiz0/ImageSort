@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/jlortiz0/multisav/streamy"
+	"github.com/jlortiz0/ImageSort/streamy"
 )
 
 type StreamyWrapper struct {
@@ -10,7 +10,7 @@ type StreamyWrapper struct {
 }
 
 func NewStreamyWrapper(name string, fps float32) (*StreamyWrapper, error) {
-	rd, err := streamy.NewAvVideoReader(name)
+	rd, err := streamy.NewAvVideoReader(name, "", true)
 	if err != nil {
 		return nil, err
 	}

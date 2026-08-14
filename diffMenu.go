@@ -32,7 +32,7 @@ import (
 	"time"
 
 	"github.com/devedge/imagehash"
-	"github.com/jlortiz0/multisav/streamy"
+	"github.com/jlortiz0/ImageSort/streamy"
 	"github.com/veandco/go-sdl2/sdl"
 )
 
