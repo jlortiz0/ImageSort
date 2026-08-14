@@ -28,6 +28,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -301,15 +302,12 @@ func (menu *DiffMenu) imageLoader() int {
 	_, err := os.Stat(filepath.Join(menu.fldr, menu.diffList[menu.Selected][0]))
 	_, err2 := os.Stat(filepath.Join(menu.fldr, menu.diffList[menu.Selected][1]))
 	if os.IsNotExist(err) || os.IsNotExist(err2) {
-		if menu.Selected == len(menu.diffList)-1 {
+		menu.diffList = slices.Delete(menu.diffList, menu.Selected, menu.Selected+1)
+		if menu.Selected == len(menu.diffList) {
 			menu.Selected--
-		} else {
-			copy(menu.diffList[menu.Selected:], menu.diffList[menu.Selected+1:])
-			if menu.prevMoveDir && menu.Selected > 0 {
-				menu.Selected--
-			}
+		} else if menu.prevMoveDir && menu.Selected > 0 {
+			menu.Selected--
 		}
-		menu.diffList = menu.diffList[:len(menu.diffList)-1]
 		menu.itemList = menu.itemList[:len(menu.itemList)-1]
 		return menu.imageLoader()
 	}

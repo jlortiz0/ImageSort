@@ -187,7 +187,7 @@ func moveFile(menu ImageBrowser, from, target string) int {
 	}
 	os.Rename(from, filepath.Join(target, newName))
 	if target != "Trash" {
-		hashes[path.Join(target, newName)] = hashes[from]
+		hashes[path.Join(target, newName)] = hashes[filepath.ToSlash(from)]
 	}
 	delete(hashes, filepath.ToSlash(from))
 	ret := menu.imageLoader()
@@ -302,15 +302,12 @@ func (menu *ImageMenu) imageLoader() int {
 Error:
 	if err != nil {
 		if _, err2 := os.Stat(filepath.Join(menu.fldr, menu.itemList[menu.Selected])); os.IsNotExist(err2) {
-			if menu.Selected == len(menu.itemList)-1 {
+			menu.itemList = slices.Delete(menu.itemList, menu.Selected, menu.Selected+1)
+			if menu.Selected == len(menu.itemList) {
 				menu.Selected--
-			} else {
-				copy(menu.itemList[menu.Selected:], menu.itemList[menu.Selected+1:])
-				if menu.prevMoveDir && menu.Selected > 0 {
-					menu.Selected--
-				}
+			} else if menu.prevMoveDir && menu.Selected > 0 {
+				menu.Selected--
 			}
-			menu.itemList = menu.itemList[:len(menu.itemList)-1]
 			return menu.imageLoader()
 		}
 		menu.animated = false
