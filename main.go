@@ -118,7 +118,7 @@ func main() {
 		for i := 0; i < 5; i++ {
 			stack = stack[strings.IndexByte(stack, '\n')+1:]
 		}
-		f, err2 := os.OpenFile("crash.log", os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
+		f, err2 := os.OpenFile("crash.log", os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
 		if err2 == nil {
 			f.Write([]byte(err.Error()))
 			f.Write([]byte("\n"))

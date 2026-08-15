@@ -203,7 +203,7 @@ func (menu *DiffMenu) keyHandler(key sdl.Keycode) int {
 		moveFactor := int32(0)
 		for menu.pos.X < display.GetViewport().W {
 			menu.pos.X += flingOffsets[moveFactor]
-			moveFactor = minInt32(moveFactor+1, int32(len(flingOffsets)-1))
+			moveFactor = min(moveFactor+1, int32(len(flingOffsets)-1))
 			menu.renderer()
 			display.Present()
 			delay()
@@ -214,12 +214,12 @@ func (menu *DiffMenu) keyHandler(key sdl.Keycode) int {
 		menu.ffmpeg, menu.ffmpeg2 = menu.ffmpeg2, menu.ffmpeg
 		moveFactor = int32(0)
 		for menu.pos.X > -menu.pos.W {
-			menu.pos.X -= flingOffsets[minInt32(moveFactor, int32(len(flingOffsets)-1))]
+			menu.pos.X -= flingOffsets[min(moveFactor, int32(len(flingOffsets)-1))]
 			moveFactor++
 		}
 		for moveFactor > 0 {
 			moveFactor--
-			menu.pos.X += flingOffsets[minInt32(moveFactor, int32(len(flingOffsets)-1))]
+			menu.pos.X += flingOffsets[min(moveFactor, int32(len(flingOffsets)-1))]
 			menu.renderer()
 			display.Present()
 			delay()
@@ -299,9 +299,65 @@ func (menu *DiffMenu) imageLoader() int {
 		menu.animated = false
 		return LOOP_EXIT
 	}
-	_, err := os.Stat(filepath.Join(menu.fldr, menu.diffList[menu.Selected][0]))
-	_, err2 := os.Stat(filepath.Join(menu.fldr, menu.diffList[menu.Selected][1]))
-	if os.IsNotExist(err) || os.IsNotExist(err2) {
+	_, _, sx, sy, _ := loading.Query()
+	// On some systems, just trying to blit loading will cause a black screen or flash a previous frame
+	// Need to copy fadeFg under it
+	saveScreen()
+	display.SetRenderTarget(nil)
+	wW, wH := window.GetSize()
+	display.Copy(fadeFg, nil, &sdl.Rect{W: wW, H: wH})
+	display.Copy(loading, nil, &sdl.Rect{W: sx, H: sy, X: wW - sx, Y: wH - sy})
+	display.Present()
+	if menu.image != nil {
+		menu.image.Destroy()
+	}
+	if menu.image2 != nil {
+		menu.image2.Destroy()
+	}
+	if menu.ffmpeg != nil {
+		menu.ffmpeg.Destroy()
+		menu.ffmpeg = nil
+	}
+	if menu.ffmpeg2 != nil {
+		menu.ffmpeg2.Destroy()
+		menu.ffmpeg2 = nil
+	}
+	for {
+		selItem := menu.diffList[menu.Selected][menu.imageSel^1]
+		toLoad := filepath.Join(menu.fldr, selItem)
+
+		err := menu.loadImageFromPath(toLoad)
+		if err == nil {
+			menu.image2 = menu.image
+			menu.pos2 = menu.pos
+			menu.ffmpeg2 = menu.ffmpeg
+		} else if _, err2 := os.Stat(toLoad); !errors.Is(err2, os.ErrNotExist) {
+			menu.image2, menu.pos2 = drawMessage(wordWrapper(err.Error(), []string{"Error loading ", selItem, ""}))
+		} else {
+			goto skipLoadImage2
+		}
+
+		selItem = menu.diffList[menu.Selected][menu.imageSel]
+		toLoad = filepath.Join(menu.fldr, selItem)
+		err = menu.loadImageFromPath(toLoad)
+		if err == nil {
+			menu.itemList[menu.Selected] = selItem
+			return LOOP_CONT
+		} else if _, err2 := os.Stat(toLoad); !errors.Is(err2, os.ErrNotExist) {
+			menu.itemList[menu.Selected] = selItem
+			menu.animated = false
+			menu.image, menu.pos = drawMessage(wordWrapper(err.Error(), []string{"Error loading ", selItem, ""}))
+			return LOOP_CONT
+		}
+		if menu.image2 != nil {
+			menu.image2.Destroy()
+		}
+		if menu.ffmpeg2 != nil {
+			menu.ffmpeg2.Destroy()
+			menu.ffmpeg2 = nil
+		}
+
+	skipLoadImage2:
 		menu.diffList = slices.Delete(menu.diffList, menu.Selected, menu.Selected+1)
 		if menu.Selected == len(menu.diffList) {
 			menu.Selected--
@@ -309,16 +365,11 @@ func (menu *DiffMenu) imageLoader() int {
 			menu.Selected--
 		}
 		menu.itemList = menu.itemList[:len(menu.itemList)-1]
-		return menu.imageLoader()
+		if len(menu.diffList) == 0 {
+			menu.animated = false
+			return LOOP_EXIT
+		}
 	}
-	menu.itemList[menu.Selected] = menu.diffList[menu.Selected][menu.imageSel^1]
-	menu.ImageMenu.imageLoader()
-	menu.image, menu.image2 = menu.image2, menu.image
-	menu.ffmpeg, menu.ffmpeg2 = menu.ffmpeg2, menu.ffmpeg
-	menu.pos2 = menu.pos
-	menu.itemList[menu.Selected] = menu.diffList[menu.Selected][menu.imageSel]
-	menu.ImageMenu.imageLoader()
-	return LOOP_CONT
 }
 
 func (menu *DiffMenu) destroy() {

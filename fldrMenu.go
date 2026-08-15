@@ -354,7 +354,7 @@ func doOptionsMenu() int {
 	if err != nil {
 		panic(err)
 	}
-	err = os.WriteFile("ImgSort.cfg", b, 0644)
+	err = os.WriteFile("ImgSort.cfg", b, 0600)
 	if err != nil {
 		panic(err)
 	}

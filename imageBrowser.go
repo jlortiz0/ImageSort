@@ -298,40 +298,53 @@ func (menu *ImageMenu) imageLoader() int {
 		menu.ffmpeg.Destroy()
 		menu.ffmpeg = nil
 	}
-	var err error
-Error:
-	if err != nil {
-		if _, err2 := os.Stat(filepath.Join(menu.fldr, menu.itemList[menu.Selected])); os.IsNotExist(err2) {
-			menu.itemList = slices.Delete(menu.itemList, menu.Selected, menu.Selected+1)
-			if menu.Selected == len(menu.itemList) {
-				menu.Selected--
-			} else if menu.prevMoveDir && menu.Selected > 0 {
-				menu.Selected--
-			}
-			return menu.imageLoader()
+	for {
+		selItem := menu.itemList[menu.Selected]
+		toLoad := filepath.Join(menu.fldr, selItem)
+
+		err := menu.loadImageFromPath(toLoad)
+		if err == nil {
+			return LOOP_CONT
 		}
-		menu.animated = false
-		menu.image, menu.pos = drawMessage(wordWrapper(err.Error(), []string{"Error loading ", menu.itemList[menu.Selected], ""}))
-		return LOOP_CONT
+
+		if _, err2 := os.Stat(toLoad); !errors.Is(err2, os.ErrNotExist) {
+			menu.animated = false
+			menu.image, menu.pos = drawMessage(wordWrapper(err.Error(), []string{"Error loading ", selItem, ""}))
+			return LOOP_CONT
+		}
+		menu.itemList = slices.Delete(menu.itemList, menu.Selected, menu.Selected+1)
+		if menu.Selected == len(menu.itemList) {
+			menu.Selected--
+		} else if menu.prevMoveDir && menu.Selected > 0 {
+			menu.Selected--
+		}
+		if len(menu.itemList) == 0 {
+			menu.animated = false
+			return LOOP_EXIT
+		}
 	}
-	ind := strings.LastIndexByte(menu.itemList[menu.Selected], '.')
-	ext := strings.ToLower(menu.itemList[menu.Selected][ind+1:])
+}
+
+func (menu *ImageMenu) loadImageFromPath(toLoad string) (err error) {
+	wW, wH := window.GetSize()
+	var sx, sy int32
+	ind := strings.LastIndexByte(toLoad, '.')
+	ext := strings.ToLower(toLoad[ind+1:])
 	if ext == "mp4" || ext == "webm" || ext == "mov" || ext == "gif" {
-		menu.ffmpeg, err = NewStreamyWrapper(filepath.Join(menu.fldr, menu.itemList[menu.Selected]), 30)
+		menu.ffmpeg, err = NewStreamyWrapper(toLoad, 30)
 		if err != nil {
-			goto Error
+			return err
 		}
 		fw, fh := menu.ffmpeg.GetDimensions()
 		if fh < 1 || fw < 1 {
 			menu.ffmpeg.Destroy()
-			err = strconv.ErrRange
-			goto Error
+			return strconv.ErrRange
 		}
 		menu.image, err = display.CreateTexture(uint32(sdl.PIXELFORMAT_RGBA32), sdl.TEXTUREACCESS_STREAMING, fw, fh)
 		if err != nil {
 			menu.image.Destroy()
 			menu.ffmpeg.Destroy()
-			goto Error
+			return err
 		}
 		menu.image.SetBlendMode(sdl.BLENDMODE_BLEND)
 		if fh*wW >= fw*wH {
@@ -343,11 +356,13 @@ Error:
 		}
 		menu.pos = &sdl.Rect{X: (wW - sx) / 2, Y: (wH - sy) / 2, H: sy, W: sx}
 		menu.animated = true
-		return LOOP_CONT
+		return nil
 	}
-	rawImg, err := img.Load(filepath.Join(menu.fldr, menu.itemList[menu.Selected]))
+
+	var rawImg *sdl.Surface
+	rawImg, err = img.Load(toLoad)
 	if err != nil {
-		goto Error
+		return err
 	}
 	menu.image, _ = display.CreateTextureFromSurface(rawImg)
 	if rawImg.H*wW >= rawImg.W*wH {
@@ -360,25 +375,11 @@ Error:
 	menu.pos = &sdl.Rect{X: (wW - sx) / 2, Y: (wH - sy) / 2, H: sy, W: sx}
 	menu.animated = false
 	rawImg.Free()
-	return LOOP_CONT
-}
-
-func minInt32(x, y int32) int32 {
-	if x < y {
-		return x
-	}
-	return y
-}
-
-func maxInt32(x, y int32) int32 {
-	if x < y {
-		return y
-	}
-	return x
+	return nil
 }
 
 func clampInt32(x, lower, upper int32) int32 {
-	return minInt32(upper, maxInt32(lower, x))
+	return min(upper, max(lower, x))
 }
 
 const imageMenuMoveAmount = 16
@@ -391,14 +392,14 @@ func (menu *ImageMenu) renderer() {
 	}
 	keys := sdl.GetKeyboardState()
 	if keys[sdl.SCANCODE_W] != 0 && menu.pos.Y < 0 {
-		menu.pos.Y = minInt32(0, menu.pos.Y+imageMenuMoveAmount)
+		menu.pos.Y = min(0, menu.pos.Y+imageMenuMoveAmount)
 	} else if keys[sdl.SCANCODE_S] != 0 && menu.pos.H > display.GetViewport().H {
-		menu.pos.Y = maxInt32(display.GetViewport().H-menu.pos.H, menu.pos.Y-imageMenuMoveAmount)
+		menu.pos.Y = max(display.GetViewport().H-menu.pos.H, menu.pos.Y-imageMenuMoveAmount)
 	}
 	if keys[sdl.SCANCODE_A] != 0 && menu.pos.X < 0 {
-		menu.pos.X = minInt32(0, menu.pos.X+imageMenuMoveAmount)
+		menu.pos.X = min(0, menu.pos.X+imageMenuMoveAmount)
 	} else if keys[sdl.SCANCODE_D] != 0 && menu.pos.W > display.GetViewport().W {
-		menu.pos.X = maxInt32(display.GetViewport().W-menu.pos.W, menu.pos.X-imageMenuMoveAmount)
+		menu.pos.X = max(display.GetViewport().W-menu.pos.W, menu.pos.X-imageMenuMoveAmount)
 	}
 	if keys[sdl.SCANCODE_UP] != 0 && menu.pos.W < 10000 && menu.pos.H < 10000 {
 		vp := display.GetViewport()
@@ -474,7 +475,7 @@ func (men *TrashMenu) keyHandler(key sdl.Keycode) int {
 			}
 			err := os.RemoveAll("Trash")
 			if err == nil {
-				os.Mkdir("Trash", 0644)
+				os.Mkdir("Trash", 0700)
 				if _, quit := displayMessage("Trash emptied."); quit {
 					return LOOP_QUIT
 				}
