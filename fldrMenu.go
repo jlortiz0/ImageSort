@@ -235,7 +235,7 @@ func (tim *TextInputMessage) redraw() {
 		drawText(tim.output, surf, 10, 5)
 	}
 	tim.image, _ = display.CreateTextureFromSurface(surf)
-	tim.pos = &sdl.Rect{X: (wW - surf.W) / 2, Y: (wH - surf.H) / 2, H: surf.H, W: surf.W}
+	tim.pos = sdl.Rect{X: (wW - surf.W) / 2, Y: (wH - surf.H) / 2, H: surf.H, W: surf.W}
 	surf.Free()
 }
 
@@ -274,7 +274,7 @@ func createNewFolder(output string) string {
 	return tim.output
 }
 
-func drawMessage(msg string) (*sdl.Texture, *sdl.Rect) {
+func drawMessage(msg string) (*sdl.Texture, sdl.Rect) {
 	msgData := strings.Split(msg, "\n")
 	var longest string
 	for _, v := range msgData {
@@ -296,7 +296,7 @@ func drawMessage(msg string) (*sdl.Texture, *sdl.Rect) {
 	}
 	texture, _ := display.CreateTextureFromSurface(surf)
 	wW, wH := window.GetSize()
-	rect := &sdl.Rect{X: (wW - surf.W) / 2, Y: (wH - surf.H) / 2, H: surf.H, W: surf.W}
+	rect := sdl.Rect{X: (wW - surf.W) / 2, Y: (wH - surf.H) / 2, H: surf.H, W: surf.W}
 	surf.Free()
 	return texture, rect
 }
@@ -309,7 +309,7 @@ type Message struct {
 func (msg *Message) renderer() {
 	display.SetDrawColor(64, 64, 64, 0)
 	display.Clear()
-	display.Copy(msg.image, nil, msg.pos)
+	display.Copy(msg.image, nil, &msg.pos)
 }
 
 func (msg *Message) keyHandler(key sdl.Keycode) int {

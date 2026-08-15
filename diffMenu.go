@@ -48,10 +48,10 @@ type hashEntry struct {
 
 type DiffMenu struct {
 	image2   *sdl.Texture
-	pos2     *sdl.Rect
 	ffmpeg2  *StreamyWrapper
 	diffList [][2]string
 	ImageMenu
+	pos2     sdl.Rect
 	imageSel int
 }
 
@@ -113,7 +113,7 @@ func (menu *DiffMenu) initDiff() int {
 	var ops float32
 	texture, rect := drawMessage("Finding duplicates...\nPreparing...")
 	display.Clear()
-	display.Copy(texture, nil, rect)
+	display.Copy(texture, nil, &rect)
 	fadeScreen()
 	lastUpdate := time.Now()
 	lastPump := time.Now()
@@ -137,7 +137,7 @@ func (menu *DiffMenu) initDiff() int {
 			texture.Destroy()
 			texture, rect = drawMessage(fmt.Sprintf("Finding duplicates...\nHashing %.1f%%", ops/float32(len(menu.itemList))*100))
 			display.Clear()
-			display.Copy(texture, nil, rect)
+			display.Copy(texture, nil, &rect)
 			display.Present()
 			lastUpdate = time.Now()
 		}

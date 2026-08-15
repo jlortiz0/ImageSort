@@ -361,9 +361,9 @@ type Menu interface {
 }
 
 type ChoiceMenu struct {
-	pos      *sdl.Rect
 	image    *sdl.Texture
 	itemList []string
+	pos      sdl.Rect
 	Selected int
 	animated bool
 }
@@ -404,7 +404,7 @@ func makeMenu(list []string, selected int) *ChoiceMenu {
 		panic(err)
 	}
 	sH, sW := surf.H, surf.W
-	men.pos = &sdl.Rect{X: xpos, Y: ypos, H: sH, W: sW}
+	men.pos = sdl.Rect{X: xpos, Y: ypos, H: sH, W: sW}
 	surf.Free()
 	return men
 }
@@ -437,7 +437,7 @@ func (men *ChoiceMenu) keyHandler(key sdl.Keycode) int {
 func (menu *ChoiceMenu) renderer() {
 	display.SetDrawColor(64, 64, 64, 0)
 	display.Clear()
-	display.Copy(menu.image, nil, menu.pos)
+	display.Copy(menu.image, nil, &menu.pos)
 	display.SetDrawColor(0xC1, 0xDD, 0xF3, 0)
 	display.FillRect(&sdl.Rect{X: menu.pos.X, Y: int32(menu.Selected)*fHeight + menu.pos.Y, H: fHeight, W: 40})
 }

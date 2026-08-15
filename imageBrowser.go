@@ -250,7 +250,7 @@ func (menu *ImageMenu) keyHandler(key sdl.Keycode) int {
 			sx = wW
 			sy = wW * fh / fw
 		}
-		menu.pos = &sdl.Rect{X: (wW - sx) / 2, Y: (wH - sy) / 2, H: sy, W: sx}
+		menu.pos = sdl.Rect{X: (wW - sx) / 2, Y: (wH - sy) / 2, H: sy, W: sx}
 	case sdl.K_g:
 		str := createNewFolder(strconv.Itoa(menu.Selected + 1))
 		if str == "\x00" {
@@ -354,7 +354,7 @@ func (menu *ImageMenu) loadImageFromPath(toLoad string) (err error) {
 			sx = wW
 			sy = wW * fh / fw
 		}
-		menu.pos = &sdl.Rect{X: (wW - sx) / 2, Y: (wH - sy) / 2, H: sy, W: sx}
+		menu.pos = sdl.Rect{X: (wW - sx) / 2, Y: (wH - sy) / 2, H: sy, W: sx}
 		menu.animated = true
 		return nil
 	}
@@ -372,7 +372,7 @@ func (menu *ImageMenu) loadImageFromPath(toLoad string) (err error) {
 		sx = wW
 		sy = wW * rawImg.H / rawImg.W
 	}
-	menu.pos = &sdl.Rect{X: (wW - sx) / 2, Y: (wH - sy) / 2, H: sy, W: sx}
+	menu.pos = sdl.Rect{X: (wW - sx) / 2, Y: (wH - sy) / 2, H: sy, W: sx}
 	menu.animated = false
 	rawImg.Free()
 	return nil
@@ -431,7 +431,7 @@ func (menu *ImageMenu) renderer() {
 			menu.image.Unlock()
 		}
 	}
-	display.Copy(menu.image, nil, menu.pos)
+	display.Copy(menu.image, nil, &menu.pos)
 	wW, wH := window.GetSize()
 	posIndic, err := font.RenderUTF8Shaded(fmt.Sprintf("%d/%d", menu.Selected+1, len(menu.itemList)), COLOR_BLACK, COLOR_WHITE)
 	if err != nil {
