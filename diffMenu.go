@@ -280,6 +280,8 @@ func (menu *DiffMenu) keyHandler(key sdl.Keycode) int {
 			menu.imageLoader()
 		}
 		return ret
+	case sdl.K_EQUALS, sdl.K_PLUS, sdl.K_KP_PLUS:
+		return LOOP_CONT
 	default:
 		return menu.ImageMenu.keyHandler(key)
 	}

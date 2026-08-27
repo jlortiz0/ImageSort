@@ -216,6 +216,16 @@ func moveFile(menu ImageBrowser, from, target string) int {
 		delay()
 	}
 	menu.stopAnim()
+	renameFile(from, target)
+	ret := menu.imageLoader()
+	if ret == LOOP_CONT {
+		menu.renderer()
+		display.Present()
+	}
+	return ret
+}
+
+func renameFile(from, target string) {
 	newName := filepath.Base(from)
 	if _, err := os.Stat(filepath.Join(target, newName)); err == nil {
 		x := -1
@@ -233,13 +243,9 @@ func moveFile(menu ImageBrowser, from, target string) int {
 	}
 	os.Rename(from, filepath.Join(target, newName))
 	if target != "Trash" {
-		hashes[path.Join(target, newName)] = hashes[filepath.ToSlash(from)]
+		hashes[path.Join(filepath.ToSlash(target), newName)] = hashes[filepath.ToSlash(from)]
 	}
 	delete(hashes, filepath.ToSlash(from))
-	ret := menu.imageLoader()
-	menu.renderer()
-	display.Present()
-	return ret
 }
 
 func (menu *ImageMenu) keyHandler(key sdl.Keycode) int {
@@ -321,6 +327,7 @@ func (menu *ImageMenu) keyHandler(key sdl.Keycode) int {
 		sel = sel[:len(sel)-len(albumSuffix)]
 		albumMenu := makeAlbumMenu(filepath.Join(menu.fldr, albumsSubdir, sel), menu.albums[sel])
 		if albumMenu != nil {
+			defer albumMenu.destroy()
 			albumMenu.imageLoader()
 			if stdEventLoop(albumMenu) == LOOP_QUIT {
 				return LOOP_QUIT
@@ -335,6 +342,54 @@ func (menu *ImageMenu) keyHandler(key sdl.Keycode) int {
 			os.Remove(filepath.Join(menu.fldr, albumsSubdir, sel))
 		}
 		menu.imageLoader()
+		saveScreen()
+		menu.renderer()
+		fadeScreen()
+	case sdl.K_EQUALS:
+		if sdl.GetModState()&sdl.KMOD_SHIFT == 0 {
+			return LOOP_CONT
+		}
+		fallthrough
+	case sdl.K_PLUS, sdl.K_KP_PLUS:
+		p, album := menu.getFilePath()
+		if album {
+			return LOOP_CONT
+		}
+		albumSel := makeAlbumSelMenu(menu.fldr, menu.albums, menu.image)
+		var ret int
+		if albumSel == nil {
+			return LOOP_CONT
+		}
+		albumSel.imageLoader()
+		ret = stdEventLoop(albumSel)
+		albumSel.destroy()
+		if ret == LOOP_QUIT {
+			return LOOP_QUIT
+		}
+
+		if ret == LOOP_REDO {
+			selAlbum := albumSel.itemList[albumSel.Selected]
+			if selAlbum == "" {
+				selAlbum = filepath.Base(p)
+				ind := strings.LastIndexByte(p, '.')
+				if ind <= 0 {
+					ind = len(selAlbum)
+				}
+				selAlbum = selAlbum[:ind]
+				os.MkdirAll(filepath.Join(menu.fldr, albumsSubdir, selAlbum), 0700)
+				menu.itemList[menu.Selected] = fmt.Sprintf("%s"+albumSuffix, selAlbum)
+			} else {
+				selAlbum = selAlbum[:len(selAlbum)-len(albumSuffix)]
+			}
+			if menu.albums == nil {
+				menu.albums = make(map[string][]string)
+			}
+			menu.albums[selAlbum] = append(menu.albums[selAlbum], filepath.Base(p))
+			menu.albumsDirty = true
+			menu.stopAnim()
+			renameFile(filepath.Join(menu.fldr, p), filepath.Join(menu.fldr, albumsSubdir, selAlbum))
+			menu.imageLoader()
+		}
 		saveScreen()
 		menu.renderer()
 		fadeScreen()
@@ -408,7 +463,7 @@ func (menu *ImageMenu) imageLoader() int {
 		if albumMode {
 			selItem = selItem[:len(selItem)-len(albumSuffix)]
 			if len(menu.albums[selItem]) > 0 {
-			menu.albums[selItem] = slices.Delete(menu.albums[selItem], 0, 1)
+				menu.albums[selItem] = slices.Delete(menu.albums[selItem], 0, 1)
 			}
 			menu.albumsDirty = true
 			if len(menu.albums[selItem]) > 0 {

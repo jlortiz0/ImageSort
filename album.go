@@ -19,6 +19,7 @@ package main
 
 import (
 	"path/filepath"
+	"sort"
 
 	"github.com/veandco/go-sdl2/sdl"
 )
@@ -64,6 +65,95 @@ func (menu *AlbumMenu) keyHandler(key sdl.Keycode) int {
 		return moveFile(menu, filepath.Join(menu.fldr, menu.itemList[menu.Selected]), filepath.Dir(filepath.Dir(menu.fldr)))
 	case sdl.K_RETURN, sdl.K_RETURN2, sdl.K_KP_ENTER:
 		return LOOP_CONT
+	case sdl.K_EQUALS, sdl.K_PLUS, sdl.K_KP_PLUS:
+		return LOOP_CONT
+	}
+	return menu.ImageMenu.keyHandler(key)
+}
+
+type AlbumSelMenu struct {
+	original *sdl.Texture
+	ImageMenu
+}
+
+func makeAlbumSelMenu(fldr string, albums map[string][]string, original *sdl.Texture) *AlbumSelMenu {
+	items := make([]string, 0, len(albums)+1)
+	for k := range albums {
+		items = append(items, k+albumSuffix)
+	}
+	sort.Strings(items)
+	items = append(items, "")
+
+	return &AlbumSelMenu{
+		original: original,
+		ImageMenu: ImageMenu{
+			fldr: fldr,
+			ChoiceMenu: ChoiceMenu{
+				itemList: items,
+			},
+			albums: albums,
+		},
+	}
+}
+
+func (menu *AlbumSelMenu) renderer() {
+	if menu.shouldReload {
+		menu.shouldReload = false
+		menu.imageLoader()
+	}
+	menu.ImageMenu.renderer()
+}
+
+func (menu *AlbumSelMenu) imageLoader() int {
+	if menu.image != nil {
+		menu.image.Destroy()
+	}
+	if menu.ffmpeg != nil {
+		menu.ffmpeg.Destroy()
+		menu.ffmpeg = nil
+	}
+	if menu.Selected == len(menu.itemList)-1 {
+		menu.image, menu.pos = drawMessage("New...")
+		return LOOP_CONT
+	}
+	return menu.ImageMenu.imageLoader()
+}
+
+func (menu *AlbumSelMenu) keyHandler(key sdl.Keycode) int {
+	switch key {
+	case sdl.K_x, sdl.K_c:
+		return LOOP_CONT
+	case sdl.K_RETURN, sdl.K_RETURN2, sdl.K_KP_ENTER:
+		var sy, sx int32
+		wW, wH := window.GetSize()
+		_, _, fw, fh, _ := menu.original.Query()
+		if fh*wW >= fw*wH {
+			sy = wH
+			sx = wH * fw / fh
+		} else {
+			sx = wW
+			sy = wW * fh / fw
+		}
+		origPos := sdl.Rect{X: (wW - sx) / 2, Y: wH, H: sy, W: sx}
+		const scaleAmount = 8
+		targetPos := sdl.Rect{X: (wW - sx/scaleAmount) / 2, Y: (wH - sy/scaleAmount) / 2, H: sy / scaleAmount, W: sx / scaleAmount}
+
+		const maxFactor = 336
+		factor := int32(0)
+		for x := int32(6); x <= 36; x += 2 {
+			factor += x
+			menu.renderer()
+			pos := sdl.Rect{
+				X: int32(float32(factor*(targetPos.X-origPos.X))/maxFactor) + origPos.X,
+				Y: int32(float32(factor*(targetPos.Y-origPos.Y))/maxFactor) + origPos.Y,
+				W: int32(float32(factor*(targetPos.W-origPos.W))/maxFactor) + origPos.W,
+				H: int32(float32(factor*(targetPos.H-origPos.H))/maxFactor) + origPos.H,
+			}
+			display.Copy(menu.original, nil, &pos)
+			display.Present()
+			delay()
+		}
+		return LOOP_REDO
 	}
 	return menu.ImageMenu.keyHandler(key)
 }
