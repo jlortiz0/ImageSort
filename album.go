@@ -18,8 +18,12 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 package main
 
 import (
+	"encoding/json"
+	"fmt"
+	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 
 	"github.com/veandco/go-sdl2/sdl"
 )
@@ -156,4 +160,64 @@ func (menu *AlbumSelMenu) keyHandler(key sdl.Keycode) int {
 		return LOOP_REDO
 	}
 	return menu.ImageMenu.keyHandler(key)
+}
+
+func (menu *ImageMenu) moveAlbum(from, to string) {
+	// from will have src/albumID
+	albumID := strings.TrimSuffix(filepath.Base(from), albumSuffix)
+	from = filepath.Dir(from)
+	if from != menu.fldr {
+		panic(fmt.Sprintf("from not equal, expect %s got %s", menu.fldr, from))
+	}
+	albumData, ok := menu.albums[albumID]
+	if !ok {
+		panic(fmt.Sprintf("album %s not found in source %s", albumID, menu.fldr))
+	}
+	os.Mkdir(filepath.Join(to, albumsSubdir), 0600)
+
+	var destAlbumData map[string]json.RawMessage
+	f, err := os.OpenFile(filepath.Join(to, albumsSubdir, "albums.json"), os.O_RDWR|os.O_CREATE, 0600)
+	if err != nil {
+		panic(fmt.Errorf("failed to open album data for dest %s: %w", to, err))
+	}
+	fi, _ := f.Stat()
+	if fi.Size() > 0 {
+		err = json.NewDecoder(f).Decode(&destAlbumData)
+		if err != nil {
+			panic(fmt.Errorf("failed to decode album data for dest %s: %w", to, err))
+		}
+	}
+	if destAlbumData == nil {
+		destAlbumData = make(map[string]json.RawMessage)
+	}
+
+	newAlbumID := albumID
+	if _, ok := destAlbumData[newAlbumID]; ok {
+		x := -1
+		for ; ok; _, ok = destAlbumData[fmt.Sprintf("%s_%d", newAlbumID, x)] {
+			x++
+		}
+		newAlbumID = fmt.Sprintf("%s_%d", newAlbumID, x)
+	}
+	encoded, err := json.Marshal(albumData)
+	if err != nil {
+		panic(fmt.Errorf("failed to encode album data for dest %s: %w", to, err))
+	}
+	destAlbumData[newAlbumID] = encoded
+	err = os.Rename(filepath.Join(menu.fldr, albumsSubdir, albumID), filepath.Join(to, albumsSubdir, newAlbumID))
+	if err != nil {
+		panic(fmt.Errorf("failed to rename album folder from %s/%s to %s/%s: %w", menu.fldr, albumID, to, newAlbumID, err))
+	}
+
+	f.Seek(0, 0)
+	err = json.NewEncoder(f).Encode(destAlbumData)
+	if err != nil {
+		panic(fmt.Errorf("failed to encode album data for dest %s: %w", to, err))
+	}
+	err = f.Close()
+	if err != nil {
+		panic(fmt.Errorf("failed to sync album data for dest %s: %w", to, err))
+	}
+	delete(menu.albums, albumID)
+	menu.albumsDirty = true
 }

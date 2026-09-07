@@ -40,6 +40,7 @@ type ImageBrowser interface {
 	modY(int32)
 	stopAnim()
 	imageLoader() int
+	moveAlbum(from, to string)
 }
 
 type ImageMenu struct {
@@ -216,7 +217,11 @@ func moveFile(menu ImageBrowser, from, target string) int {
 		delay()
 	}
 	menu.stopAnim()
-	renameFile(from, target)
+	if strings.HasSuffix(from, albumSuffix) {
+		menu.moveAlbum(from, target)
+	} else {
+		renameFile(from, target)
+	}
 	ret := menu.imageLoader()
 	if ret == LOOP_CONT {
 		menu.renderer()
