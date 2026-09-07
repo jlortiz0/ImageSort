@@ -20,10 +20,12 @@ package main
 import (
 	"bufio"
 	"encoding/binary"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"image"
 	"io"
+	"maps"
 	"math/bits"
 	"os"
 	"path"
@@ -47,15 +49,33 @@ type hashEntry struct {
 }
 
 type DiffMenu struct {
-	image2   *sdl.Texture
-	ffmpeg2  *StreamyWrapper
-	diffList [][2]string
+	image2          *sdl.Texture
+	ffmpeg2         *StreamyWrapper
+	diffList        [][2]string
+	reverseAlbumMap map[string]string
 	ImageMenu
 	pos2     sdl.Rect
 	imageSel int
 }
 
 func makeDiffMenu(fldr string) (*DiffMenu, bool) {
+	ls, reverseAlbumMap, quit := makeDiffList(fldr, false)
+	if quit {
+		return nil, quit
+	}
+	menu := new(DiffMenu)
+	if len(ls) == 0 {
+		_, quit = displayMessage("Folder " + fldr + "\nhas no supported images.")
+		return nil, quit
+	}
+	menu.itemList = ls
+	menu.reverseAlbumMap = reverseAlbumMap
+	menu.fldr = fldr
+	display.SetDrawColor(64, 64, 64, 0)
+	return menu, false
+}
+
+func makeDiffList(fldr string, prefix bool) ([]string, map[string]string, bool) {
 	entries, err := os.ReadDir(fldr)
 	if err != nil {
 		panic(err)
@@ -83,24 +103,48 @@ func makeDiffMenu(fldr string) (*DiffMenu, bool) {
 			case "png":
 				fallthrough
 			case "jpeg":
-				ls = append(ls, v.Name())
+				if prefix {
+					ls = append(ls, filepath.Join(fldr, v.Name()))
+				} else {
+					ls = append(ls, v.Name())
+				}
 			}
 		}
 	}
-	menu := new(DiffMenu)
-	if fldr != "." && len(ls) == 0 {
-		var quit bool
-		if len(entries) == 0 {
-			_, quit = displayMessage("Folder " + fldr + "\nis empty.")
-		} else {
-			_, quit = displayMessage("Folder " + fldr + "\nhas no supported images.")
+
+	var reverseAlbumMap map[string]string
+	albumData, err := os.ReadFile(filepath.Join(fldr, albumsSubdir, "albums.json"))
+	if err == nil {
+		var albums map[string][]string
+		err = json.Unmarshal(albumData, &albums)
+		if err != nil {
+			_, quit := displayMessage("Failed to load album data:\n" + err.Error())
+			if quit {
+				return nil, nil, true
+			}
 		}
-		return nil, quit
+		n := 0
+		for _, data := range albums {
+			n += len(data)
+		}
+		ls = slices.Grow(ls, n)
+		reverseAlbumMap = make(map[string]string, n)
+		for albumID, data := range albums {
+			for _, entry := range data {
+				p := filepath.Join(albumsSubdir, albumID, entry)
+				if prefix {
+					p = filepath.Join(fldr, p)
+				}
+				ls = append(ls, p)
+				if prefix {
+					reverseAlbumMap[p] = filepath.Join(fldr, albumID)
+				} else {
+					reverseAlbumMap[p] = albumID
+				}
+			}
+		}
 	}
-	menu.itemList = ls
-	menu.fldr = fldr
-	display.SetDrawColor(64, 64, 64, 0)
-	return menu, false
+	return ls, reverseAlbumMap, false
 }
 
 type hashErr struct {
@@ -154,15 +198,19 @@ func (menu *DiffMenu) initDiff() int {
 		}
 	}
 	for i, v := range diffLs {
+		iAlbum := menu.reverseAlbumMap[menu.itemList[i]]
 		j := i + 1
 		for j < len(diffLs) {
 			if compareBits(v, diffLs[j]) {
-				menu.diffList = append(menu.diffList, [2]string{menu.itemList[i], menu.itemList[j]})
+				if iAlbum == "" || iAlbum != menu.reverseAlbumMap[menu.itemList[j]] {
+					menu.diffList = append(menu.diffList, [2]string{menu.itemList[i], menu.itemList[j]})
+				}
 			}
 			j++
 		}
 	}
 	menu.itemList = make([]string, len(menu.diffList))
+	menu.reverseAlbumMap = nil
 	texture.Destroy()
 	if len(failed) > 0 {
 		f, err := os.Create("failed.txt")
@@ -384,55 +432,30 @@ func (menu *DiffMenu) destroy() {
 }
 
 func makeDiffAllMenu() (*DiffMenu, bool) {
-	menu, quit := makeDiffMenu(".")
-	if quit {
-		return nil, true
-	}
+	menu := new(DiffMenu)
+	menu.fldr = "."
 	entries, err := os.ReadDir(".")
 	if err != nil {
 		panic(err)
 	}
 	ls := make([]string, 0, len(entries)<<7)
+	menu.reverseAlbumMap = make(map[string]string, len(entries)<<2)
 	for _, fldr := range entries {
 		if fldr.IsDir() && fldr.Name() != "Trash" && fldr.Name()[0] != '.' && fldr.Name()[0] != '$' {
-			entries, err := os.ReadDir(fldr.Name())
-			if err != nil {
-				panic(err)
+			ls2, reverseAlbumMap2, quit := makeDiffList(fldr.Name(), true)
+			if quit {
+				return nil, quit
 			}
-			for _, v := range entries {
-				if !v.IsDir() {
-					ind := strings.LastIndexByte(v.Name(), '.')
-					if ind == -1 {
-						continue
-					}
-					switch strings.ToLower(v.Name()[ind+1:]) {
-					case "mp4":
-						fallthrough
-					case "webm":
-						fallthrough
-					case "gif":
-						fallthrough
-					case "mov":
-						fallthrough
-					case "bmp":
-						fallthrough
-					case "jpg":
-						fallthrough
-					case "png":
-						fallthrough
-					case "jpeg":
-						// Have to use path here because filepath will confuse getHash
-						ls = append(ls, path.Join(fldr.Name(), v.Name()))
-					}
-				}
-			}
+			ls = append(ls, ls2...)
+			maps.Copy(menu.reverseAlbumMap, reverseAlbumMap2)
 		}
 	}
 	if len(ls) == 0 {
-		_, quit = displayMessage("No supported images.")
+		_, quit := displayMessage("No supported images.")
 		return nil, quit
 	}
 	menu.itemList = ls
+	display.SetDrawColor(64, 64, 64, 0)
 	return menu, false
 }
 
@@ -524,7 +547,7 @@ func saveHashes() error {
 }
 
 func getHash(path string) ([]byte, error) {
-	hash, ok := hashes[path]
+	hash, ok := hashes[filepath.ToSlash(path)]
 	if ok {
 		info, err := os.Stat(path)
 		if err == nil && info.ModTime().Unix() == hash.modTime {
