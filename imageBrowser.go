@@ -79,6 +79,7 @@ func makeImageMenu(fldr string) (*ImageMenu, bool) {
 	if config.SizeSort != 0 {
 		srtMap = make(map[string]int64, len(entries))
 	}
+	hasAlbums := 0
 	for _, v := range entries {
 		if !v.IsDir() {
 			ind := strings.LastIndexByte(v.Name(), '.')
@@ -107,37 +108,42 @@ func makeImageMenu(fldr string) (*ImageMenu, bool) {
 					srtMap[v.Name()] = info.Size()
 				}
 			}
+		} else if v.Name() == albumsSubdir {
+			hasAlbums = 1
 		}
 	}
 
 	menu := new(ImageMenu)
 	menu.fldr = fldr
-	albumData, err := os.ReadFile(filepath.Join(fldr, albumsSubdir, "albums.json"))
-	if err == nil {
-		err = json.Unmarshal(albumData, &menu.albums)
-		if err != nil {
-			_, quit := displayMessage("Failed to load album data:\n" + err.Error())
-			if quit {
-				return nil, true
-			}
-		} else if config.SizeSort != 0 {
-			ls = slices.Grow(ls, len(menu.albums))
-			for k, v := range menu.albums {
-				k2 := k + albumSuffix
-				var sum int64
-				for _, p := range v {
-					fi, _ := os.Stat(filepath.Join(fldr, albumsSubdir, k, p))
-					sum += fi.Size()
+
+	if hasAlbums != 0 {
+		albumData, err := os.ReadFile(filepath.Join(fldr, albumsSubdir, "albums.json"))
+		if err == nil {
+			err = json.Unmarshal(albumData, &menu.albums)
+			if err != nil {
+				_, quit := displayMessage("Failed to load album data:\n" + err.Error())
+				if quit {
+					return nil, true
 				}
-				srtMap[k2] = sum
-				ls = append(ls, k2)
-			}
-		} else {
-			ls = slices.Grow(ls, len(menu.albums))
-			for k := range menu.albums {
-				k += albumSuffix
-				ind, _ := slices.BinarySearch(ls, k)
-				ls = slices.Insert(ls, ind, k)
+			} else if config.SizeSort != 0 {
+				ls = slices.Grow(ls, len(menu.albums))
+				for k, v := range menu.albums {
+					k2 := k + albumSuffix
+					var sum int64
+					for _, p := range v {
+						fi, _ := os.Stat(filepath.Join(fldr, albumsSubdir, k, p))
+						sum += fi.Size()
+					}
+					srtMap[k2] = sum
+					ls = append(ls, k2)
+				}
+			} else {
+				ls = slices.Grow(ls, len(menu.albums))
+				for k := range menu.albums {
+					k += albumSuffix
+					ind, _ := slices.BinarySearch(ls, k)
+					ls = slices.Insert(ls, ind, k)
+				}
 			}
 		}
 	}
@@ -151,7 +157,7 @@ func makeImageMenu(fldr string) (*ImageMenu, bool) {
 	menu.itemList = ls
 	if len(ls) == 0 {
 		var quit bool
-		if len(entries) == 0 {
+		if len(entries) <= hasAlbums {
 			_, quit = displayMessage("Folder " + fldr + "\nis empty.")
 		} else {
 			_, quit = displayMessage("Folder " + fldr + "\nhas no supported images.")

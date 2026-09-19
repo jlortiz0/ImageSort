@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/veandco/go-sdl2/sdl"
@@ -144,13 +145,31 @@ func (menu FolderMenu) keyHandler(key sdl.Keycode) int {
 			if err != nil {
 				panic(err)
 			}
-			n, _ := f.ReadDir(1)
+			n, _ := f.ReadDir(2)
 			f.Close()
+
+			if len(n) == 1 && n[0].Name() == albumsSubdir {
+				f, err = os.Open(filepath.Join(dName, albumsSubdir))
+				if err != nil {
+					panic(err)
+				}
+				n, _ = f.ReadDir(1)
+				f.Close()
+				if len(n) == 1 && n[0].Name() == "albums.json" {
+					fi, _ := n[0].Info()
+					if fi.Size() < 4 {
+						n = nil
+					}
+				}
+			}
+
 			if len(n) != 0 {
 				if _, quit := displayMessage("Folder " + dName + "\nis not empty."); quit {
 					return LOOP_QUIT
 				}
 			} else if b, quit := displayMessage("Okay to delete\nfolder " + dName + "?\nZ - Yes  X - No"); b {
+				os.Remove(filepath.Join(dName, albumsSubdir, "albums.json"))
+				os.Remove(filepath.Join(dName, albumsSubdir))
 				os.Remove(dName)
 				return LOOP_REDO
 			} else if quit {
