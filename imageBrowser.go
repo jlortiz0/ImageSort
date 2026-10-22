@@ -18,6 +18,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -39,14 +40,17 @@ type ImageBrowser interface {
 	modY(int32)
 	stopAnim()
 	imageLoader() int
+	moveAlbum(from, to string)
 }
 
 type ImageMenu struct {
 	ffmpeg *StreamyWrapper
+	albums map[string][]string
 	fldr   string
 	ChoiceMenu
 	shouldReload bool
 	prevMoveDir  bool
+	albumsDirty  bool
 }
 
 var flingOffsets = []int32{36, 43, 51, 62, 77, 95, 120, 152, 196, 255, 336, 449, 610, 840}
@@ -75,6 +79,7 @@ func makeImageMenu(fldr string) (*ImageMenu, bool) {
 	if config.SizeSort != 0 {
 		srtMap = make(map[string]int64, len(entries))
 	}
+	hasAlbums := 0
 	for _, v := range entries {
 		if !v.IsDir() {
 			ind := strings.LastIndexByte(v.Name(), '.')
@@ -103,20 +108,56 @@ func makeImageMenu(fldr string) (*ImageMenu, bool) {
 					srtMap[v.Name()] = info.Size()
 				}
 			}
+		} else if v.Name() == albumsSubdir {
+			hasAlbums = 1
 		}
 	}
+
+	menu := new(ImageMenu)
+	menu.fldr = fldr
+
+	if hasAlbums != 0 {
+		albumData, err := os.ReadFile(filepath.Join(fldr, albumsSubdir, "albums.json"))
+		if err == nil {
+			err = json.Unmarshal(albumData, &menu.albums)
+			if err != nil {
+				_, quit := displayMessage("Failed to load album data:\n" + err.Error())
+				if quit {
+					return nil, true
+				}
+			} else if config.SizeSort != 0 {
+				ls = slices.Grow(ls, len(menu.albums))
+				for k, v := range menu.albums {
+					k2 := k + albumSuffix
+					var sum int64
+					for _, p := range v {
+						fi, _ := os.Stat(filepath.Join(fldr, albumsSubdir, k, p))
+						sum += fi.Size()
+					}
+					srtMap[k2] = sum
+					ls = append(ls, k2)
+				}
+			} else {
+				ls = slices.Grow(ls, len(menu.albums))
+				for k := range menu.albums {
+					k += albumSuffix
+					ind, _ := slices.BinarySearch(ls, k)
+					ls = slices.Insert(ls, ind, k)
+				}
+			}
+		}
+	}
+
 	if config.SizeSort != 0 {
 		sort.Slice(ls, func(i, j int) bool { return srtMap[ls[i]] > srtMap[ls[j]] })
 	}
 	if config.ReverseSort != 0 {
 		slices.Reverse(ls)
 	}
-	menu := new(ImageMenu)
-	menu.fldr = fldr
 	menu.itemList = ls
 	if len(ls) == 0 {
 		var quit bool
-		if len(entries) == 0 {
+		if len(entries) <= hasAlbums {
 			_, quit = displayMessage("Folder " + fldr + "\nis empty.")
 		} else {
 			_, quit = displayMessage("Folder " + fldr + "\nhas no supported images.")
@@ -128,6 +169,18 @@ func makeImageMenu(fldr string) (*ImageMenu, bool) {
 }
 
 func (menu *ImageMenu) destroy() {
+	if menu.albumsDirty {
+		data, err := json.Marshal(menu.albums)
+		if err != nil {
+			fmt.Printf("failed to marshal album data: %v\n", err)
+		} else {
+			os.Mkdir(filepath.Join(menu.fldr, albumsSubdir), 0700)
+			err = os.WriteFile(filepath.Join(menu.fldr, albumsSubdir, "albums.json"), data, 0644)
+			if err != nil {
+				fmt.Printf("failed to write album data: %v\n", err)
+			}
+		}
+	}
 	menu.image.Destroy()
 	if menu.ffmpeg != nil {
 		menu.ffmpeg.Destroy()
@@ -170,6 +223,20 @@ func moveFile(menu ImageBrowser, from, target string) int {
 		delay()
 	}
 	menu.stopAnim()
+	if strings.HasSuffix(from, albumSuffix) {
+		menu.moveAlbum(from, target)
+	} else {
+		renameFile(from, target)
+	}
+	ret := menu.imageLoader()
+	if ret == LOOP_CONT {
+		menu.renderer()
+		display.Present()
+	}
+	return ret
+}
+
+func renameFile(from, target string) {
 	newName := filepath.Base(from)
 	if _, err := os.Stat(filepath.Join(target, newName)); err == nil {
 		x := -1
@@ -187,13 +254,9 @@ func moveFile(menu ImageBrowser, from, target string) int {
 	}
 	os.Rename(from, filepath.Join(target, newName))
 	if target != "Trash" {
-		hashes[path.Join(target, newName)] = hashes[filepath.ToSlash(from)]
+		hashes[path.Join(filepath.ToSlash(target), newName)] = hashes[filepath.ToSlash(from)]
 	}
 	delete(hashes, filepath.ToSlash(from))
-	ret := menu.imageLoader()
-	menu.renderer()
-	display.Present()
-	return ret
 }
 
 func (menu *ImageMenu) keyHandler(key sdl.Keycode) int {
@@ -267,14 +330,103 @@ func (menu *ImageMenu) keyHandler(key sdl.Keycode) int {
 		display.SetDrawColor(64, 64, 64, 0)
 		menu.renderer()
 		fadeScreen()
+	case sdl.K_RETURN, sdl.K_RETURN2, sdl.K_KP_ENTER:
+		if !strings.HasSuffix(menu.itemList[menu.Selected], albumSuffix) {
+			return LOOP_CONT
+		}
+		sel := menu.itemList[menu.Selected]
+		sel = sel[:len(sel)-len(albumSuffix)]
+		albumMenu := makeAlbumMenu(filepath.Join(menu.fldr, albumsSubdir, sel), menu.albums[sel])
+		if albumMenu != nil {
+			defer albumMenu.destroy()
+			albumMenu.imageLoader()
+			if stdEventLoop(albumMenu) == LOOP_QUIT {
+				return LOOP_QUIT
+			}
+		}
+		if len(albumMenu.itemList) > 0 {
+			menu.albumsDirty = menu.albumsDirty || !slices.Equal(menu.albums[sel], albumMenu.itemList)
+			menu.albums[sel] = albumMenu.itemList
+		} else {
+			delete(menu.albums, sel)
+			menu.albumsDirty = true
+			os.Remove(filepath.Join(menu.fldr, albumsSubdir, sel))
+		}
+		menu.imageLoader()
+		saveScreen()
+		menu.renderer()
+		fadeScreen()
+	case sdl.K_EQUALS:
+		if sdl.GetModState()&sdl.KMOD_SHIFT == 0 {
+			return LOOP_CONT
+		}
+		fallthrough
+	case sdl.K_PLUS, sdl.K_KP_PLUS:
+		p, album := menu.getFilePath()
+		if album {
+			return LOOP_CONT
+		}
+		albumSel := makeAlbumSelMenu(menu.fldr, menu.albums, menu.image)
+		var ret int
+		if albumSel == nil {
+			return LOOP_CONT
+		}
+		albumSel.imageLoader()
+		ret = stdEventLoop(albumSel)
+		albumSel.destroy()
+		if ret == LOOP_QUIT {
+			return LOOP_QUIT
+		}
+
+		if ret == LOOP_REDO {
+			selAlbum := albumSel.itemList[albumSel.Selected]
+			if selAlbum == "" {
+				selAlbum = filepath.Base(p)
+				ind := strings.LastIndexByte(p, '.')
+				if ind <= 0 {
+					ind = len(selAlbum)
+				}
+				selAlbum = selAlbum[:ind]
+				os.MkdirAll(filepath.Join(menu.fldr, albumsSubdir, selAlbum), 0700)
+				menu.itemList[menu.Selected] = fmt.Sprintf("%s"+albumSuffix, selAlbum)
+			} else {
+				selAlbum = selAlbum[:len(selAlbum)-len(albumSuffix)]
+			}
+			if menu.albums == nil {
+				menu.albums = make(map[string][]string)
+			}
+			menu.albums[selAlbum] = append(menu.albums[selAlbum], filepath.Base(p))
+			menu.albumsDirty = true
+			menu.stopAnim()
+			renameFile(filepath.Join(menu.fldr, p), filepath.Join(menu.fldr, albumsSubdir, selAlbum))
+			menu.imageLoader()
+		}
+		saveScreen()
+		menu.renderer()
+		fadeScreen()
 	case sdl.K_v:
-		viewFile(filepath.Join(menu.fldr, menu.itemList[menu.Selected]))
+		p, _ := menu.getFilePath()
+		viewFile(filepath.Join(menu.fldr, p))
 	case sdl.K_h:
-		highlightFile(menu.fldr, menu.itemList[menu.Selected])
+		p, _ := menu.getFilePath()
+		highlightFile(menu.fldr, p)
 	case sdl.K_p:
 		panic(errors.New("no windows available for re-popping"))
 	}
 	return LOOP_CONT
+}
+
+func (menu *ImageMenu) getFilePath() (string, bool) {
+	p := menu.itemList[menu.Selected]
+	if strings.HasSuffix(p, albumSuffix) {
+		// Load the first image of the album
+		p = p[:len(p)-len(albumSuffix)]
+		if len(menu.albums[p]) == 0 {
+			return "", true
+		}
+		return filepath.Join(albumsSubdir, p, menu.albums[p][0]), true
+	}
+	return p, false
 }
 
 func (menu *ImageMenu) imageLoader() int {
@@ -298,19 +450,37 @@ func (menu *ImageMenu) imageLoader() int {
 		menu.ffmpeg.Destroy()
 		menu.ffmpeg = nil
 	}
+
 	for {
 		selItem := menu.itemList[menu.Selected]
-		toLoad := filepath.Join(menu.fldr, selItem)
+		toLoad, albumMode := menu.getFilePath()
+		toLoad = filepath.Join(menu.fldr, toLoad)
 
 		err := menu.loadImageFromPath(toLoad)
 		if err == nil {
 			return LOOP_CONT
 		}
 
-		if _, err2 := os.Stat(toLoad); !errors.Is(err2, os.ErrNotExist) {
+		if _, err2 := os.Stat(toLoad); toLoad != menu.fldr && !errors.Is(err2, os.ErrNotExist) {
 			menu.animated = false
+			_, selItem, _ := strings.Cut(toLoad, string(os.PathSeparator))
+			if selItem == "" {
+				selItem = toLoad
+			}
 			menu.image, menu.pos = drawMessage(wordWrapper(err.Error(), []string{"Error loading ", selItem, ""}))
 			return LOOP_CONT
+		}
+
+		if albumMode {
+			selItem = selItem[:len(selItem)-len(albumSuffix)]
+			if len(menu.albums[selItem]) > 0 {
+				menu.albums[selItem] = slices.Delete(menu.albums[selItem], 0, 1)
+			}
+			menu.albumsDirty = true
+			if len(menu.albums[selItem]) > 0 {
+				continue
+			}
+			delete(menu.albums, selItem)
 		}
 		menu.itemList = slices.Delete(menu.itemList, menu.Selected, menu.Selected+1)
 		if menu.Selected == len(menu.itemList) {
@@ -432,24 +602,44 @@ func (menu *ImageMenu) renderer() {
 		}
 	}
 	display.Copy(menu.image, nil, &menu.pos)
+
 	wW, wH := window.GetSize()
 	posIndic, err := font.RenderUTF8Shaded(fmt.Sprintf("%d/%d", menu.Selected+1, len(menu.itemList)), COLOR_BLACK, COLOR_WHITE)
 	if err != nil {
 		panic(err)
 	}
+	uiRWidth := posIndic.W
 	posInTxt, _ := display.CreateTextureFromSurface(posIndic)
 	display.Copy(posInTxt, nil, &sdl.Rect{X: wW - posIndic.W, Y: wH - posIndic.H, H: posIndic.H, W: posIndic.W})
 	posIndic.Free()
 	posInTxt.Destroy()
+
 	_, _, iW, iH, _ := menu.image.Query()
 	posIndic, err = font.RenderUTF8Shaded(fmt.Sprintf("%dx%d", iW, iH), COLOR_BLACK, COLOR_WHITE)
 	if err != nil {
 		panic(err)
 	}
+	uiLWidth := posIndic.W
 	posInTxt, _ = display.CreateTextureFromSurface(posIndic)
 	display.Copy(posInTxt, nil, &sdl.Rect{Y: wH - posIndic.H, H: posIndic.H, W: posIndic.W})
 	posIndic.Free()
 	posInTxt.Destroy()
+
+	if strings.HasSuffix(menu.itemList[menu.Selected], albumSuffix) {
+		sel := menu.itemList[menu.Selected]
+		sel = sel[:len(sel)-len(albumSuffix)]
+		albumBanner, err := font.RenderUTF8Shaded(fmt.Sprintf("ENTER to open (%d images)", len(menu.albums[sel])), COLOR_BLACK, COLOR_WHITE)
+		if err != nil {
+			panic(err)
+		}
+		posInTxt, _ = display.CreateTextureFromSurface(albumBanner)
+		uiWidth := wW - uiLWidth - uiRWidth - 60
+		uiHeight := float32(uiWidth) / float32(albumBanner.W) * float32(albumBanner.H)
+		display.Copy(posInTxt, nil, &sdl.Rect{
+			X: (wW-uiLWidth-uiRWidth-uiWidth)/2 + uiLWidth,
+			Y: wH - int32(uiHeight), H: int32(uiHeight), W: uiWidth})
+		albumBanner.Free()
+	}
 }
 
 type TrashMenu struct {
@@ -591,7 +781,7 @@ func (men *SortMenu) loadFolderBar(highlight int) {
 }
 
 func (men *SortMenu) keyHandler(key sdl.Keycode) int {
-	if key == sdl.K_MINUS || key == sdl.K_EQUALS || (key >= sdl.K_0 && key <= sdl.K_9) {
+	if key == sdl.K_MINUS || (key == sdl.K_EQUALS && sdl.GetModState()&sdl.KMOD_SHIFT == 0) || (key >= sdl.K_0 && key <= sdl.K_9) {
 		if !men.showBar {
 			return LOOP_CONT
 		}
