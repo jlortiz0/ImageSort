@@ -1,6 +1,6 @@
 module github.com/jlortiz0/ImageSort
 
-go 1.21.0
+go 1.25.0
 
 require (
 	github.com/TheTitanrain/w32 v0.0.0-20200114052255-2654d97dbd3d
@@ -9,8 +9,8 @@ require (
 	github.com/disintegration/imaging v1.6.2 // indirect
 	github.com/stretchr/testify v1.7.0 // indirect
 	github.com/veandco/go-sdl2 v0.4.25
-	golang.org/x/image v0.21.0 // indirect
-	golang.org/x/sys v0.1.0
+	golang.org/x/image v0.41.0 // indirect
+	golang.org/x/sys v0.43.0
 )
 
 require (
